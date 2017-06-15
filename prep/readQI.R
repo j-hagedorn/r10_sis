@@ -1,5 +1,7 @@
 
-library(tidyverse)
+library(tidyverse); library(lubridate); library(stringr)
+
+#### Read in QI data ####
 
 path <- "C:/Users/joshh/OneDrive - TBD Solutions LLC/files/Region10/SIS/"
 
@@ -53,11 +55,11 @@ qi %<>%
     DATE_OF_BIRTH = ymd(DATE_OF_BIRTH)
   ) 
 
-# Read in services data
+#### Read in services data ####
 
 source("C:/Users/joshh/Documents/GitHub/r10_autism/prep/read_autism_svs.R")
 
-# Read in SIS data
+#### Read in SIS data ####
 
 ## Define local source of SIS data
 sis_src <- "C:/Users/joshh/OneDrive - TBD Solutions LLC/files/Region10/SIS/SIS Online Full Report 6-8-17.xlsx"
@@ -80,7 +82,9 @@ sis <-
   select(-ends_with("notes")) %>% 
   # Format datetime fields
   mutate(# Remove hms from sis_completed_dt and convert it
-    sis_completed_dt = mdy(gsub(" .*$","",as.character(sis_completed_dt))),
+    sis_completed_dt = gsub(" .*$","",as.character(sis_completed_dt)),
+    # Convert numeric from Excel
+    sis_completed_dt = as.Date(as.numeric(sis_completed_dt), origin="1899-12-30"),
     # Add space between time and 'AM/PM' to allow conversion
     sis_startTime = gsub('([0-9])([[:alpha:]])', '\\1 \\2', sis_startTime),
     sis_endTime = gsub('([0-9])([[:alpha:]])', '\\1 \\2', sis_endTime),
@@ -136,7 +140,11 @@ sis <-
     mcaid_id = as.factor(mcaid_id)
   )
 
-sis_ids <- sis %>% select(mcaid_id,sis_id)
+sis_ids <- 
+  sis %>% 
+  # Filter out expired assessments (> 3 yrs old)
+  filter(as.Date("2017-09-30") - as.Date(sis_completed_dt) <= (365 * 3)) %>%
+  select(mcaid_id,sis_id)
 
 rm(sis_full)
 
