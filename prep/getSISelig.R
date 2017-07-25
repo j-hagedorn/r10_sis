@@ -41,7 +41,7 @@ elig_qi <-
 
 elig_svs <- c("T1016","T1017","H0045","S5151","T1005","T2036","T2037","H0036","H0039")
 
-need_sis <-
+completed <-
   svs %>%
   # Include only Medicaid IDs identified from the QI file
   filter(MEDICAID_ID %in% elig_qi$MEDICAID_ID) %>%
@@ -54,40 +54,42 @@ need_sis <-
     | HMP_ELIG == TRUE
   ) %>%
   group_by(MEDICAID_ID,PROVIDER_NAME) %>%
-  summarize(most_recent_service = max(FROM_DATE)) %>%
+  summarize(
+    initial_service = min(FROM_DATE),
+    most_recent_service = max(FROM_DATE)
+  ) %>%
+  ungroup() %>%
   # Join in SIS data.  If sis-id field is NA, then incomplete
-  left_join(sis_ids, by = c("MEDICAID_ID" = "mcaid_id")) %>%
+  left_join(sis_ids, by = c("MEDICAID_ID" = "mcaid_id"))  
+  
+
+#Filter to only include those who need SIS
+need_sis <-
+  completed %>%
   filter(is.na(sis_id) == T) %>%
   arrange(desc(most_recent_service))
 
 # Summarize completion rate
 
 summary <-
-  svs %>%
-  # Include only Medicaid IDs identified from the QI file
-  filter(MEDICAID_ID %in% elig_qi$MEDICAID_ID) %>%
-  # Include only eligible services
-  filter(CPT_CD %in% elig_svs) %>%
-  filter(
-    # Include individuals with Medicaid, including spenddown
-    MEDICAID %in% c("Y","S")
-    # or those who are eligible for HMP
-    | HMP_ELIG == TRUE
-  ) %>%
-  group_by(MEDICAID_ID,PROVIDER_NAME) %>%
-  summarize(most_recent_service = max(FROM_DATE)) %>%
-  # Join in SIS data.  If sis-id field is NA, then incomplete
-  left_join(sis_ids, by = c("MEDICAID_ID" = "mcaid_id")) %>%
+  completed %>%
   group_by(PROVIDER_NAME) %>%
   summarize(
     denominator = n_distinct(MEDICAID_ID),
     numerator = n_distinct(sis_id)
   ) %>%
   mutate(
-    percent_complete = round(num / den * 100, digits = 1)
+    percent_complete = round(numerator / denominator * 100, digits = 1)
   ) 
-  
 
+# How many people who have received a SIS are no longer in the list of eligibles?
+
+  # People who have received a SIS
+  unique(sis_ids$mcaid_id) %>%
+  # who are not on the list of eligible
+  setdiff(unique(completed$MEDICAID_ID)) %>% 
+  n_distinct()
+  
 # Create output
 write.csv(summary, file = paste0("output/percent_complete_summary_",Sys.Date(),".csv"))
 write.csv(need_sis, file = paste0("output/need_sis_r10_",Sys.Date(),".csv"))

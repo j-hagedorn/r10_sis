@@ -142,9 +142,10 @@ sis <-
 
 sis_ids <- 
   sis %>% 
-  # Filter out expired assessments (> 3 yrs old)
+  # Filter out assessments which will be expired (> 3 yrs old) by due date
   filter(as.Date("2017-09-30") - as.Date(sis_completed_dt) <= (365 * 3)) %>%
-  select(mcaid_id,sis_id)
+  select(mcaid_id,sis_id) %>%
+  ungroup()
 
 rm(sis_full)
 
