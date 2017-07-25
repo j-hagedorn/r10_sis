@@ -21,6 +21,8 @@
 #        Respite: H0045,S5151, T1005, T2036 or T2037; 
 #        Other services H0036 (home based) or H0039 (assertive community treatment).
 
+library(tidyverse); library(lubridate)
+
 elig_qi <-
   qi %>%
   filter(
@@ -113,6 +115,5 @@ for (i in listDf$vals){
   )
 }
   
-
 
 
