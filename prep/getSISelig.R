@@ -25,6 +25,7 @@ library(tidyverse); library(lubridate)
 
 elig_qi <-
   qi %>%
+  filter(DISABILITYDD != "2") %>%
   filter(
     # Include if IDD field is a 1 (yes) 
     DISABILITYDD == "1" 
