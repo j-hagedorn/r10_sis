@@ -23,8 +23,10 @@
 
 library(tidyverse); library(lubridate)
 
+# Identify individuals who are eligible based on QI file criteria
 elig_qi <-
   qi %>%
+  # Remove instances where IDD field is explicitly marked as 2 (no)
   filter(DISABILITYDD != "2") %>%
   filter(
     # Include if IDD field is a 1 (yes) 
@@ -39,17 +41,19 @@ elig_qi <-
     age = interval(DATE_OF_BIRTH, Sys.Date())/duration(num = 1, units = "years")
   ) %>%
   # Include only individuals 18 and over
-  filter(age >= 18)
+  filter(age >= 18) %>%
+  mutate(eligible_qi = T) %>%
+  select(MEDICAID_ID,eligible_qi)
 
-
-elig_svs <- c("T1016","T1017","H0045","S5151","T1005","T2036","T2037","H0036","H0039")
-
-completed <-
+# Identify individuals who are eligible based on service file criteria
+elig_svs <- 
   svs %>%
-  # Include only Medicaid IDs identified from the QI file
-  filter(MEDICAID_ID %in% elig_qi$MEDICAID_ID) %>%
   # Include only eligible services
-  filter(CPT_CD %in% elig_svs) %>%
+  filter(CPT_CD %in% c(
+    "T1016","T1017","H0045","S5151","T1005",
+    "T2036","T2037","H0036","H0039"
+    )
+  ) %>%
   filter(
     # Include individuals with Medicaid, including spenddown
     MEDICAID %in% c("Y","S")
@@ -58,41 +62,74 @@ completed <-
   ) %>%
   group_by(MEDICAID_ID,PROVIDER_NAME) %>%
   summarize(
-    initial_service = min(FROM_DATE),
-    most_recent_service = max(FROM_DATE)
+    initial_service = min(FROM_DATE, na.rm = T),
+    most_recent_service = max(FROM_DATE, na.rm = T)
   ) %>%
-  ungroup() %>%
+  mutate(eligible_svs = T) %>%
+  ungroup()
+  
+# Identify individuals with a completed SIS assessment
+sis_ids <- 
+  sis %>% 
+  select(mcaid_id,sis_id,sis_completed_dt) %>%
+  group_by(mcaid_id) %>%
+  # Include only most recent SIS assessment per ID
+  summarize(sis_completed_dt = max(sis_completed_dt)) %>%
+  ungroup()
+
+combined <-
+  # Start with individuals receiving ANY services
+  svs %>%
+  select(MEDICAID_ID) %>% distinct() %>%
+  # Join to individuals receiving eligible services
+  full_join(elig_svs, by = "MEDICAID_ID") %>%
+  full_join(elig_qi, by = "MEDICAID_ID") %>%
+  left_join(sis_defer, by = "MEDICAID_ID") %>%
+  droplevels() %>%
+  # Replace missing logical values with FALSE
+  replace_na(replace = list(eligible_svs = F,eligible_qi = F,deferral = F)) %>%
   # Join in SIS data.  If sis-id field is NA, then incomplete
-  left_join(sis_ids, by = c("MEDICAID_ID" = "mcaid_id"))  
+  full_join(sis_ids, by = c("MEDICAID_ID" = "mcaid_id")) %>%
+  # Include Medicaid IDs eligible from either file, or who received SIS
+  filter(eligible_svs == T | eligible_qi == T | is.na(sis_completed_dt) == F) %>%
+  # Remove null IDs
+  filter(is.na(MEDICAID_ID) == F) %>%
+  mutate(
+    sis_eligible = eligible_svs == T & eligible_qi == T,
+    sis_complete = is.na(sis_completed_dt) == F,
+    sis_overdue  = (sis_completed_dt + (365 * 3)) < today()
+  ) %>%
+  # Include individuals who are eligible OR who have received a SIS
+  filter(sis_eligible == T | sis_complete == T)
   
 
-#Filter to only include those who need SIS
+# Filter to only include those who need SIS
 need_sis <-
-  completed %>%
-  filter(is.na(sis_id) == T) %>%
+  combined %>%
+  filter(sis_eligible == T) %>%
+  filter(sis_complete == F | sis_overdue == T) %>%
   arrange(desc(most_recent_service))
 
 # Summarize completion rate
 
 summary <-
-  completed %>%
+  combined %>%
+  filter(
+    sis_eligible == T
+    & deferral == F
+  ) %>%
   group_by(PROVIDER_NAME) %>%
   summarize(
-    denominator = n_distinct(MEDICAID_ID),
-    numerator = n_distinct(sis_id)
+    denominator = sum(sis_eligible),
+    completed = sum(sis_complete),
+    overdue = sum(sis_overdue, na.rm = T)
   ) %>%
   mutate(
+    numerator = completed - overdue,
     percent_complete = round(numerator / denominator * 100, digits = 1)
   ) 
 
-# How many people who have received a SIS are no longer in the list of eligibles?
 
-  # People who have received a SIS
-  unique(sis_ids$mcaid_id) %>%
-  # who are not on the list of eligible
-  setdiff(unique(completed$MEDICAID_ID)) %>% 
-  n_distinct()
-  
 # Create output
 write.csv(summary, file = paste0("output/percent_complete_summary_",Sys.Date(),".csv"))
 write.csv(need_sis, file = paste0("output/need_sis_r10_",Sys.Date(),".csv"))
@@ -104,11 +141,11 @@ listDf <-
   need_sis %>% 
   group_by(PROVIDER_NAME) %>% 
   dplyr::arrange(desc(most_recent_service)) %>%
-  do(vals=data.frame(.)) %>% 
+  do(vals = data.frame(.)) %>% 
   dplyr::select(vals) %>% 
   lapply(function(x) {(x)})
 
-for (i in listDf$vals){
+for (i in listDf$vals) {
   write.csv(i, 
             file = paste0("output/per_cmh/need_sis_",
                           unique(i$PROVIDER_NAME),"_",

@@ -5,7 +5,7 @@ library(tidyverse); library(lubridate); library(stringr)
 
 path <- "C:/Users/joshh/OneDrive - TBD Solutions LLC/files/Region10/SIS/"
 
-qi <- read_csv(paste0(path,"QI 2017-05-31.csv"))
+qi <- read_csv(paste0(path,"QI 2018-02-15.csv"))
 
 # Remove cols where all values are NA
 qi <- Filter(function(x)!all(is.na(x)), qi)
@@ -45,7 +45,7 @@ qi %<>%
   ) %>%
   # Change numeric ID vars to characters
   mutate_at(
-    .cols = vars(DISABILITYDD:MAJOR_MENTAL_ILLNESS,-DATE_OF_BIRTH),
+    .vars = vars(DISABILITYDD:MAJOR_MENTAL_ILLNESS,-DATE_OF_BIRTH),
     .funs = funs(as.character)
   ) %>%
   # Change all character columns to factors
@@ -55,14 +55,10 @@ qi %<>%
     DATE_OF_BIRTH = ymd(DATE_OF_BIRTH)
   ) 
 
-#### Read in services data ####
-
-source("C:/Users/joshh/Documents/GitHub/r10_autism/prep/read_autism_svs.R")
-
 #### Read in SIS data ####
 
 ## Define local source of SIS data
-sis_src <- "C:/Users/joshh/OneDrive - TBD Solutions LLC/files/Region10/SIS/SIS Online Full Report 6-8-17.xlsx"
+sis_src <- "C:/Users/joshh/OneDrive - TBD Solutions LLC/files/Region10/SIS/SIS Output 2-23-18.xlsx"
 
 library(readxl)
 sis_full <- read_excel(sis_src,na = c(""," ","NA","Choose one","Enterprise Wide"))
@@ -139,13 +135,6 @@ sis <-
     # Convert to factor
     mcaid_id = as.factor(mcaid_id)
   )
-
-sis_ids <- 
-  sis %>% 
-  # Filter out assessments which will be expired (> 3 yrs old) by due date
-  filter(as.Date("2017-09-30") - as.Date(sis_completed_dt) <= (365 * 3)) %>%
-  select(mcaid_id,sis_id) %>%
-  ungroup()
 
 rm(sis_full)
 
