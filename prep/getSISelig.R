@@ -97,17 +97,34 @@ combined <-
   mutate(
     sis_eligible = eligible_svs == T & eligible_qi == T,
     sis_complete = is.na(sis_completed_dt) == F,
-    sis_overdue  = (sis_completed_dt + (365 * 3)) < today()
+    sis_overdue  = (sis_completed_dt + (365 * 3)) < today(),
+    sis_coming30 = 
+      (sis_completed_dt + (365 * 3)) < (today() + 30)
+      & (sis_completed_dt + (365 * 3)) >= today() 
   ) %>%
   # Include individuals who are eligible OR who have received a SIS
   filter(sis_eligible == T | sis_complete == T)
   
-
 # Filter to only include those who need SIS
 need_sis <-
   combined %>%
-  filter(sis_eligible == T) %>%
-  filter(sis_complete == F | sis_overdue == T) %>%
+  filter(
+    sis_eligible == T
+    & deferral == F
+  ) %>%
+  filter(
+    sis_complete == F 
+    | sis_overdue == T
+    | sis_coming30 == T
+  ) %>%
+  mutate(
+    status = case_when(
+      sis_complete == F ~ "Initial SIS Needed",
+      sis_overdue  == T ~ "Reassessment Overdue",
+      sis_coming30 == T ~ "Reassessment Due in 30 Days"
+    )
+  ) %>%
+  select(MEDICAID_ID:most_recent_service,status) %>%
   arrange(desc(most_recent_service))
 
 # Summarize completion rate
@@ -128,7 +145,6 @@ summary <-
     numerator = completed - overdue,
     percent_complete = round(numerator / denominator * 100, digits = 1)
   ) 
-
 
 # Create output
 write.csv(summary, file = paste0("output/percent_complete_summary_",Sys.Date(),".csv"))
