@@ -3,10 +3,6 @@ library(tidyverse); library(lubridate); library(stringr)
 
 #### Read in QI data ####
 
-path <- "C:/Users/joshh/OneDrive - TBD Solutions LLC/files/Region10/SIS/"
-
-qi <- read_csv(paste0(path,"QI 2018-02-15.csv"))
-
 # Remove cols where all values are NA
 qi <- Filter(function(x)!all(is.na(x)), qi)
 
@@ -138,3 +134,24 @@ sis <-
 
 rm(sis_full)
 
+# Identify individuals who are eligible based on QI file criteria
+elig_qi <-
+  qi %>%
+  # Remove instances where IDD field is explicitly marked as 2 (no)
+  filter(DISABILITYDD != "2") %>%
+  filter(
+    # Include if IDD field is a 1 (yes) 
+    DISABILITYDD == "1" 
+    # or one of the 3 proxy measures noted is populated
+    | is.na(MOBILITY) == F
+    | is.na(PERSONAL) == F
+    | is.na(SUPPORT_SYSTEM) == F
+  ) %>%
+  mutate(
+    # Compute current age
+    age = interval(DATE_OF_BIRTH, Sys.Date())/duration(num = 1, units = "years")
+  ) %>%
+  # Include only individuals 18 and over
+  filter(age >= 18) %>%
+  mutate(eligible_qi = T) %>%
+  select(MEDICAID_ID,eligible_qi)

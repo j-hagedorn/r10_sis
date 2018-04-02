@@ -100,3 +100,25 @@ svs %>%
     )
   )
   
+# Identify individuals who are eligible based on service file criteria
+elig_svs <- 
+  svs %>%
+  # Include only eligible services
+  filter(CPT_CD %in% c(
+    "T1016","T1017","H0045","S5151","T1005",
+    "T2036","T2037","H0036","H0039"
+  )
+  ) %>%
+  filter(
+    # Include individuals with Medicaid, including spenddown
+    MEDICAID %in% c("Y","S")
+    # or those who are eligible for HMP
+    | HMP_ELIG == TRUE
+  ) %>%
+  group_by(MEDICAID_ID,PROVIDER_NAME) %>%
+  summarize(
+    initial_service = min(FROM_DATE, na.rm = T),
+    most_recent_service = max(FROM_DATE, na.rm = T)
+  ) %>%
+  mutate(eligible_svs = T) %>%
+  ungroup()
