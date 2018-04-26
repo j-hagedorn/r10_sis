@@ -5,7 +5,7 @@ source("prep/read_svs.R")
 
 # Read QI data
 path <- "C:/Users/joshh/OneDrive - TBD Solutions LLC/files/Region10/SIS/"
-qi <- read_csv(paste0(path,"QI 2018-02-15.csv"))
+qi <- read_csv(paste0(path,"QI 2018.04.12.csv"))
 source("prep/readQI.R")
 
 # Read deferrals data
