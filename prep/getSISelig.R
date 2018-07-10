@@ -53,8 +53,8 @@ combined <-
     sis_eligible = eligible_svs == T & eligible_qi == T,
     sis_complete = is.na(sis_completed_dt) == F,
     sis_overdue  = (sis_completed_dt + (365 * 3)) < today(),
-    sis_coming60 = 
-      (sis_completed_dt + (365 * 3)) < (today() + 60)
+    sis_coming90 = 
+      (sis_completed_dt + (365 * 3)) < (today() + 90)
       & (sis_completed_dt + (365 * 3)) >= today() 
   ) %>%
   # Include individuals who are eligible OR who have received a SIS
@@ -70,16 +70,16 @@ need_sis <-
   filter(
     sis_complete == F 
     | sis_overdue == T
-    | sis_coming60 == T
+    | sis_coming90 == T
   ) %>%
   mutate(
     status = case_when(
       sis_complete == F ~ "Initial SIS Needed",
       sis_overdue  == T ~ "Reassessment Overdue",
-      sis_coming60 == T ~ "Reassessment Due in 60 Days"
+      sis_coming90 == T ~ "Reassessment Due in 90 Days"
     )
   ) %>%
-  select(MEDICAID_ID:most_recent_service,status) %>%
+  select(MEDICAID_ID,most_recent_service,sis_completed_dt,status) %>%
   arrange(desc(most_recent_service))
 
 # Summarize completion rate
@@ -89,7 +89,7 @@ summary <-
   mutate(
     # Create new fields to allow for filtering out of deferrals
     denom_filt = sis_eligible == T & deferral == F,
-    compl_filt = sis_eligible == T & deferral == F,
+    compl_filt = sis_complete == T & deferral == F,
     due_filt = sis_overdue == T & deferral == F
   ) %>%
   group_by(PROVIDER_NAME) %>%
