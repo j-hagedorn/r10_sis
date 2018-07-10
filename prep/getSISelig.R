@@ -107,7 +107,15 @@ summary <-
   mutate(
     numerator = completed - overdue,
     percent_complete = round(numerator / denominator * 100, digits = 1)
-  ) 
+  ) %>%
+  rename(
+    CMHSP = PROVIDER_NAME,
+    `Individuals eligible for SIS (Denominator)` = denominator, 
+    `Individuals with a completed SIS` = completed, 
+    `Individuals with an expired SIS` = overdue,
+    `Individuals with a current SIS (Numerator)` = numerator,
+    `Individuals with a current SIS / Individuals eligible for SIS` = percent_complete 
+  )
 
 # Create output
 write.csv(summary, file = paste0("output/percent_complete_summary_",Sys.Date(),".csv"))
