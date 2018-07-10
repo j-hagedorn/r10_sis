@@ -86,34 +86,39 @@ need_sis <-
 
 summary <-
   combined %>%
-  filter(
-    sis_eligible == T
-    & deferral == F
+  mutate(
+    # Create new fields to allow for filtering out of deferrals
+    denom_filt = sis_eligible == T & deferral == F,
+    compl_filt = sis_eligible == T & deferral == F,
+    due_filt = sis_overdue == T & deferral == F
   ) %>%
   group_by(PROVIDER_NAME) %>%
   summarize(
-    denominator = sum(sis_eligible),
-    completed = sum(sis_complete),
-    overdue = sum(sis_overdue, na.rm = T)
+    denominator = sum(denom_filt),
+    deferred = sum(deferral),
+    completed = sum(compl_filt),
+    overdue = sum(due_filt, na.rm = T)
   ) %>%
+  filter(is.na(PROVIDER_NAME) == F) %>%
   # Add subtotal line for PIHP
   rbind(
     ., 
     data.frame(
       PROVIDER_NAME = "Region 10", 
-      t(colSums(.[2:4]))
+      t(colSums(.[2:5]))
     )
   ) %>%
   mutate(
     numerator = completed - overdue,
     percent_complete = round(numerator / denominator * 100, digits = 1)
   ) %>%
-  rename(
+  select(
     CMHSP = PROVIDER_NAME,
-    `Individuals eligible for SIS (Denominator)` = denominator, 
+    `Individuals eligible for SIS (Denominator)` = denominator,
+    `Individuals with a current SIS (Numerator)` = numerator,
     `Individuals with a completed SIS` = completed, 
     `Individuals with an expired SIS` = overdue,
-    `Individuals with a current SIS (Numerator)` = numerator,
+    `Individuals who refused to take SIS` = deferred,
     `Individuals with a current SIS / Individuals eligible for SIS` = percent_complete 
   )
 
