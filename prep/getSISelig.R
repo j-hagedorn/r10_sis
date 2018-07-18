@@ -79,7 +79,7 @@ need_sis <-
       sis_coming90 == T ~ "Reassessment Due in 90 Days"
     )
   ) %>%
-  select(MEDICAID_ID,most_recent_service,sis_completed_dt,status) %>%
+  select(MEDICAID_ID,PROVIDER_NAME,most_recent_service,sis_completed_dt,status) %>%
   arrange(desc(most_recent_service))
 
 # Summarize completion rate
@@ -123,8 +123,8 @@ summary <-
   )
 
 # Create output
-write.csv(summary, file = paste0("output/percent_complete_summary_",Sys.Date(),".csv"))
-write.csv(need_sis, file = paste0("output/need_sis_r10_",Sys.Date(),".csv"))
+write_csv(summary, path = paste0("output/percent_complete_summary_",Sys.Date(),".csv"))
+write_csv(need_sis, path = paste0("output/need_sis_r10_",Sys.Date(),".csv"))
 
 # Create a list of dataframes, one for each level of the 'agency' variable
 # Then, output these to a sub-folder of the output as .csv files
@@ -138,8 +138,8 @@ listDf <-
   lapply(function(x) {(x)})
 
 for (i in listDf$vals) {
-  write.csv(i, 
-            file = paste0("output/per_cmh/need_sis_",
+  write_csv(i, 
+            path = paste0("output/per_cmh/need_sis_",
                           unique(i$PROVIDER_NAME),"_",
                           Sys.Date(),".csv")
   )
