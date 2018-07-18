@@ -79,7 +79,8 @@ need_sis <-
       sis_coming90 == T ~ "Reassessment Due in 90 Days"
     )
   ) %>%
-  select(MEDICAID_ID,PROVIDER_NAME,most_recent_service,sis_completed_dt,status) %>%
+  left_join(open_date, by = c("MEDICAID_ID" = "medicaid_id")) %>%
+  select(MEDICAID_ID,PROVIDER_NAME,agency_admission_date,most_recent_service,sis_completed_dt,status) %>%
   arrange(desc(most_recent_service))
 
 # Summarize completion rate

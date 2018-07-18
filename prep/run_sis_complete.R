@@ -8,6 +8,9 @@ path <- "C:/Users/JoshH.TBDSAD/OneDrive - TBD Solutions LLC/files/Region10/SIS/"
 qi <- read_csv(paste0(path,"QI 2018-06-14.csv"))
 source("prep/readQI.R")
 
+# Read BH-TEDS data
+source("prep/read_bhteds.R")
+
 # Read deferrals data
 source("prep/read_deferrals.R")
 
