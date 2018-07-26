@@ -27,4 +27,4 @@ open_date <-
   combine_bhteds(directory = paste0(path,"/active_consumers")) %>%
   select(medicaid_id,agency_admission_date)
 
-
+# bhteds <- combine_bhteds(directory = paste0(path,"/active_consumers"))

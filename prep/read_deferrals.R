@@ -2,10 +2,23 @@
 
 library(tidyverse);library(readxl)
 
-sis_defer_1 <- 
-  read_excel(
-    paste0(path,"Deferral Tracking Spreadsheet 6-1-14 to 9-30-17.xlsx")
-  ) %>%
+sis_defer_1_1 <- 
+  read_excel(paste0(path,"Deferral Tracking Spreadsheet 6-1-14 to 9-30-17.xlsx"),sheet = 1) %>%
+  rename(MEDICAID_ID = `Medicaid ID`) %>%
+  select(MEDICAID_ID)
+
+sis_defer_1_2 <- 
+  read_excel(paste0(path,"Deferral Tracking Spreadsheet 6-1-14 to 9-30-17.xlsx"),sheet = 2) %>%
+  rename(MEDICAID_ID = `Medicaid ID`) %>%
+  select(MEDICAID_ID)
+
+sis_defer_1_3 <- 
+  read_excel(paste0(path,"Deferral Tracking Spreadsheet 6-1-14 to 9-30-17.xlsx"),sheet = 3) %>%
+  rename(MEDICAID_ID = `Medicaid ID`) %>%
+  select(MEDICAID_ID)
+
+sis_defer_1_4 <- 
+  read_excel(paste0(path,"Deferral Tracking Spreadsheet 6-1-14 to 9-30-17.xlsx"),sheet = 4) %>%
   rename(MEDICAID_ID = `Medicaid ID`) %>%
   select(MEDICAID_ID)
 
@@ -17,8 +30,8 @@ sis_defer_2 <-
   select(MEDICAID_ID)
 
 sis_defer <- 
-  sis_defer_1 %>% 
-  bind_rows(sis_defer_2) %>%
+  sis_defer_1_1 %>% 
+  bind_rows(sis_defer_1_2,sis_defer_1_3,sis_defer_1_4,sis_defer_2) %>%
   # Clean Medicaid ID field
   mutate(
     # Trim lead / trail whitespace
@@ -49,4 +62,4 @@ sis_defer <-
     deferral = T
   )
 
-rm(sis_defer_1); rm(sis_defer_2)
+rm(sis_defer_1_1); rm(sis_defer_1_2);rm(sis_defer_1_3);rm(sis_defer_1_4);rm(sis_defer_2)
