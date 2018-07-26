@@ -63,10 +63,7 @@ combined <-
 # Filter to only include those who need SIS
 need_sis <-
   combined %>%
-  filter(
-    sis_eligible == T
-    & deferral == F
-  ) %>%
+  filter(sis_eligible == T) %>%
   filter(
     sis_complete == F 
     | sis_overdue == T
@@ -74,9 +71,10 @@ need_sis <-
   ) %>%
   mutate(
     status = case_when(
-      sis_complete == F ~ "Initial SIS Needed",
-      sis_overdue  == T ~ "Reassessment Overdue",
-      sis_coming90 == T ~ "Reassessment Due in 90 Days"
+      sis_complete == F & deferral == F ~ "Initial SIS Needed",
+      sis_overdue  == T & deferral == F ~ "Reassessment Overdue",
+      sis_coming90 == T & deferral == F ~ "Reassessment Due in 90 Days",
+      deferral == T                     ~ "Assessment Refused"
     )
   ) %>%
   left_join(open_date, by = c("MEDICAID_ID" = "medicaid_id")) %>%
@@ -125,6 +123,15 @@ summary <-
 
 # Create output
 write_csv(summary, path = paste0("output/percent_complete_summary_",Sys.Date(),".csv"))
+
+# Render summary report for high-level review
+rmarkdown::render(
+  input = "prep/sis_complete_summary.Rmd",
+  output_file = paste0("sis_complete_summary",Sys.Date(),".pdf"),
+  output_dir = "output",
+  params = list(summary_tbl = summary, report_date = Sys.Date())
+)
+
 write_csv(need_sis, path = paste0("output/need_sis_r10_",Sys.Date(),".csv"))
 
 # Create a list of dataframes, one for each level of the 'agency' variable
