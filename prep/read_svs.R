@@ -12,13 +12,14 @@ combineServices <- function(directory) {
   # Loop through files, binding them together
   for (i in 1:n) {
     x <- read_csv(files[i], skip = 7)
+    print(files[i])
     df <- rbind(df, x)
   } 
   df
 }
 
 # Read in .csv files as dataframes
-directory <- "C:/Users/joshh/OneDrive - TBD Solutions LLC/files/Region10/SIS/services"
+directory <- "C:/Users/JoshH.TBDSAD/OneDrive - TBD Solutions LLC/files/Region10/SIS/services"
 # Bind separate CMH dataframes together
 svs <- combineServices(directory)
 
