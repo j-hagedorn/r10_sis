@@ -31,7 +31,7 @@ The following definitions relate to the columns of the table above:
 - **Completed:**  *Individuals with a completed SIS.*  The total distinct number of individuals who have had a SIS assessment completed at any time, based on the SIS Online extract.
 - **Overdue:**  *Individuals with an expired SIS.*  The number of individuals with a *Completed* SIS whose assessment occurred more than three years prior to the date of this report.
 - **Deferred:** *Individuals who refused to take SIS.*  The number of individuals who opted not to participate in a SIS assessment.
-- **% Complete:** *Individuals with a current SIS / Individuals eligible for SIS.*  The percent completed is determined by taking the number of individuals eligible to receive a SIS assessment who did not refuse to receive the assessment (*Denominator*), and looking at the proportion of these individuals who have a current SIS (i.e. within the psat 3 years) based on assessment data (*Numerator*).
+- **% Complete:** *Individuals with a current SIS / Individuals eligible for SIS.*  The percent completed is determined by taking the number of individuals eligible to receive a SIS assessment who did not refuse to receive the assessment (*Denominator*), and looking at the proportion of these individuals who have a current SIS (i.e. within the past 3 years) based on assessment data (*Numerator*).
    
 # Data
 

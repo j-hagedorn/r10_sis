@@ -80,7 +80,8 @@ need_sis <-
   left_join(open_date, by = c("MEDICAID_ID" = "medicaid_id")) %>%
   mutate(agency_admission_date = as.Date(agency_admission_date)) %>%
   select(MEDICAID_ID,PROVIDER_NAME,agency_admission_date,most_recent_service,sis_completed_dt,status) %>%
-  arrange(desc(most_recent_service))
+  arrange(desc(most_recent_service)) %>%
+  distinct()
 
 # Summarize completion rate
 
