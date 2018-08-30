@@ -25,6 +25,9 @@ combine_bhteds <- function(directory) {
 # Bind separate CMH dataframes together
 open_date <- 
   combine_bhteds(directory = paste0(path,"/active_consumers")) %>%
+  group_by(`case_#`) %>%
+  filter(service_start_date == max(service_start_date, na.rm = T)) %>%
+  ungroup() %>%
   select(medicaid_id,agency_admission_date)
 
 # bhteds <- combine_bhteds(directory = paste0(path,"/active_consumers"))

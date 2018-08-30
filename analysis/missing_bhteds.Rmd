@@ -1,0 +1,39 @@
+---
+title: "Missing BH-TEDS records?"
+output: html_notebook
+---
+
+What is the cause of the missing (NA) admission dates?
+
+We start the process of identifying eligible individuals with service data, which we have going back to `r min(svs$FROM_DATE)`.  We left-join this to the admission date from BH-TEDS, so it follows that missing admission dates will be due to one of two reasons: (a) the `agency_admission_date` field is blank in the BH-TEDS data, or (b) there is no `medicaid_id` field to join to in the BH-TEDS data.
+
+If we keep only the most recent BH-TEDS file for each `case_#`, there are `r sum(is.na(open_date$medicaid_id))` BH-TEDS records in the data submitted which are missing a `medicaid_id`.  I've spot-checked the original Excel output reports and the ones I checked are indeed blank in those files.
+
+There are only `r sum(is.na(open_date$agency_admission_date))` BH-TEDS records in the data submitted which are missing an `agency_admission_date`, so this doesn't seem to be the issue.
+
+We can pull a list of Medicaid IDs which are present in the services data but not in the BH-TEDS files like so:
+
+```{r in_svs_not_teds}
+in_svs_not_teds <- setdiff(unique(svs$MEDICAID_ID),unique(open_date$medicaid_id))
+```
+
+There are `r length(in_svs_not_teds)` IDs that are in the services data but not BH-TEDs files that I received.  Of course, not all individuals receiving services are eligible to receive a SIS.  
+
+```{r in_siselig_not_teds}
+in_siselig_not_teds <- setdiff(unique(need_sis$MEDICAID_ID),unique(open_date$medicaid_id))
+```
+
+If we look only at beneficiaries from who are eligible for the SIS (which I believe Laurie was referring to as the 'sample'), we find `r length(in_siselig_not_teds)` IDs that are in the SIS eligible population but not BH-TEDs files that I received.
+
+There is service data for at least some of these individuals going back to `r svs %>% filter(MEDICAID_ID %in% in_siselig_not_teds) %>% summarize(min_svc_dt = min(FROM_DATE)) %>% .$min_svc_dt` and as recent as `r svs %>% filter(MEDICAID_ID %in% in_siselig_not_teds) %>% summarize(max_svc_dt = max(FROM_DATE)) %>% .$max_svc_dt`, so this doesn't seem like an issue where the person has not had time for a BH-TEDS record to be completed, or where they received services before BH-TEDS was a requirement.
+
+
+Possible reasons:
+
+- A BH-TEDS file was not completed
+- The BH-TEDS file does not contain a Medicaid ID
+- The Medicaid ID field in the BH-TEDS file does not match the Medicaid ID on the service (i.e. one of them is entered incorrectly)
+
+If you could spot check some of the IDs that are in the SIS eligible population but not BH-TEDs files that I received by looking in the MIX system, that would be wonderful.  Here's the list:
+
+`r in_siselig_not_teds`
