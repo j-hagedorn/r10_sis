@@ -16,7 +16,7 @@ library(tidyverse)
 ```{r tbl_output}
 knitr::kable(
   params$summary_tbl,
-  col.names = c("Organization","Denominator","Numerator","Completed","Overdue","Deferred","% Complete"),
+  col.names = c("Organization","Denom.","Num.","Eligible","Compl. (E)","Compl. (I)","Overdue","Deferred","% Complete"),
   format.args = list(big.mark = ',')
 )
 ```
@@ -26,12 +26,14 @@ knitr::kable(
 The following definitions relate to the columns of the table above:
 
 - **Organization:**  *Name of the organization.*  For CMHSPs, this is the name of the organization who most recently submitted claims for any service provided to an individual.
-- **Denominator:** *Individuals eligible for SIS.*  The number of individuals who are eligible to receive a Supports Intensity Scale (SIS) assessment and who have not refused to participate in the assessment.  Note that the total number of eligible individuals can be calculated by adding the *Denominator* and *Deferred* fields
-- **Numerator:** *Individuals with a current SIS.*  The number of individuals who have received a SIS assessment within the past three years.  The numerator is determined by looking at the total number of assessments *Completed* and subtracting those which are *Overdue*.  Note that because the numerator may include individuals who do not meet eligibility criteria, it is possible for the *Numerator* to be greater than the *Denominator*.
-- **Completed:**  *Individuals with a completed SIS.*  The total distinct number of individuals who have had a SIS assessment completed at any time, based on the SIS Online extract.
-- **Overdue:**  *Individuals with an expired SIS.*  The number of individuals with a *Completed* SIS whose assessment occurred more than three years prior to the date of this report.
+- **Denom:** *Denominator: Individuals who were eligible for or received a SIS.*  The number of individuals who are eligible to receive a Supports Intensity Scale (SIS) assessment and who have not refused to participate in the assessment.  The denominator also includes *Completed (I)* assessments for individuals who were not flagged as eligible but who nevertheless received an assessment. 
+- **Num.:** *Numerator: Individuals with a current SIS.*  The number of individuals who have received a SIS assessment within the past three years.  The numerator is determined by looking at the total number of *Compl. (E)* and *Compl. (I)* assessments and subtracting those which are *Overdue*.  Note that because the numerator may include individuals who do not meet eligibility criteria, it is possible for the *Numerator* to be greater than the *Denominator*.
+- **Eligible:**  *Individuals eligible to receive a SIS*  The total number of individuals who were eligible to receive a SIS assessment based on the following criteria: (a) 18 years or older, (b) have an intellectual or developmental disability, (c) have Medicaid/Healthy MI Medicaid, and (d) receiving case management, supports coordination, respite, home-based, or ACT services.
+- **Compl. (E):**  *Eligible individuals with a completed SIS.*  The total distinct number of *Eligible* individuals who have had a SIS assessment completed at any time, based on the SIS Online extract.
+- **Compl. (I):**  *Ineligible individuals with a completed SIS.*  The total distinct number of individuals who have had a SIS assessment completed at any time, based on the SIS Online extract, but who were not identified as *Eligible*.
+- **Overdue:**  *Individuals with an expired SIS.*  The number of individuals with a *Completed* SIS (whether eligible or ineligible) whose assessment occurred more than three years prior to the date of this report.
 - **Deferred:** *Individuals who refused to take SIS.*  The number of individuals who opted not to participate in a SIS assessment.
-- **% Complete:** *Individuals with a current SIS / Individuals eligible for SIS.*  The percent completed is determined by taking the number of individuals eligible to receive a SIS assessment who did not refuse to receive the assessment (*Denominator*), and looking at the proportion of these individuals who have a current SIS (i.e. within the past 3 years) based on assessment data (*Numerator*).
+- **% Complete:** *Individuals with a current SIS / Individuals eligible for SIS.*  The percent completed is determined by taking the number of individuals who received or were eligible to receive a SIS assessment who did not refuse to receive the assessment (*Denominator*), and looking at the proportion of these individuals who have a current SIS (i.e. within the past 3 years) based on assessment data (*Numerator*).
    
 # Data
 

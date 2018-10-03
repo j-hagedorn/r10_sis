@@ -51,73 +51,74 @@ combined <-
   filter(is.na(MEDICAID_ID) == F) %>%
   mutate(
     sis_eligible = eligible_svs == T & eligible_qi == T,
-    sis_complete = is.na(sis_completed_dt) == F,
+    # SIS assessments completed for eligible individuals
+    sis_complete_elig = is.na(sis_completed_dt) == F & sis_eligible == T,
+    # SIS assessments completed for ineligible individuals
+    sis_complete_inel = is.na(sis_completed_dt) == F & sis_eligible == F,
     sis_overdue  = (sis_completed_dt + (365 * 3)) < today(),
     sis_coming90 = 
       (sis_completed_dt + (365 * 3)) < (today() + 90)
       & (sis_completed_dt + (365 * 3)) >= today() 
   ) %>%
   # Include individuals who are eligible OR who have received a SIS
-  filter(sis_eligible == T | sis_complete == T)
+  filter(sis_eligible == T | sis_complete_inel == T)  %>%
+  left_join(open_date, by = c("MEDICAID_ID" = "medicaid_id")) %>%
+  mutate(agency_admission_date = as.Date(agency_admission_date)) %>%
+  distinct() 
   
 # Filter to only include those who need SIS
 need_sis <-
   combined %>%
-  filter(sis_eligible == T) %>%
-  filter(
-    sis_complete == F 
-    | sis_overdue == T
-    | sis_coming90 == T
-  ) %>%
+  filter(is.na(PROVIDER_NAME) == F) %>%
+  select(MEDICAID_ID,PROVIDER_NAME,agency_admission_date,most_recent_service,sis_completed_dt:sis_coming90,deferral) %>%
+  mutate(sis_complete_any = sis_complete_elig == T | sis_complete_inel == T) %>%
+  gather(field,val,sis_eligible:sis_complete_any) %>%
   mutate(
     status = case_when(
-      sis_complete == F & deferral == F ~ "Initial SIS Needed",
-      sis_overdue  == T & deferral == F ~ "Reassessment Overdue",
-      sis_coming90 == T & deferral == F ~ "Reassessment Due in 90 Days",
-      deferral == T                     ~ "Assessment Refused"
+      field == "sis_complete_any" & val == F  ~ "Initial SIS Needed",
+      field == "sis_complete_inel" & val == T  ~ "SIS completed but ineligible",
+      field == "sis_overdue"       & val == T  ~ "Reassessment Overdue",
+      field == "sis_coming90"      & val == T  ~ "Reassessment Due in 90 Days",
+      field == "deferral"          & val == T  ~ "Reassessment Due in 90 Days"
     )
   ) %>%
-  left_join(open_date, by = c("MEDICAID_ID" = "medicaid_id")) %>%
-  mutate(agency_admission_date = as.Date(agency_admission_date)) %>%
-  select(MEDICAID_ID,PROVIDER_NAME,agency_admission_date,most_recent_service,sis_completed_dt,status) %>%
-  arrange(desc(most_recent_service)) %>%
-  distinct()
+  filter(is.na(status) == F) %>%
+  group_by(MEDICAID_ID) %>%
+  arrange(desc(most_recent_service)) 
 
 # Summarize completion rate
 
 summary <-
   combined %>%
-  mutate(
-    # Create new fields to allow for filtering out of deferrals
-    denom_filt = sis_eligible == T & deferral == F,
-    compl_filt = sis_complete == T & deferral == F,
-    due_filt = sis_overdue == T & deferral == F
-  ) %>%
+  filter(is.na(PROVIDER_NAME) == F)  %>%
   group_by(PROVIDER_NAME) %>%
   summarize(
-    denominator = sum(denom_filt),
-    deferred = sum(deferral),
-    completed = sum(compl_filt),
-    overdue = sum(due_filt, na.rm = T)
+    eligible       = sum(sis_eligible),
+    deferred       = sum(deferral),
+    completed_elig = sum(sis_complete_elig),
+    completed_inel = sum(sis_complete_inel),
+    overdue        = sum(sis_overdue, na.rm = T)
   ) %>%
-  filter(is.na(PROVIDER_NAME) == F) %>%
   # Add subtotal line for PIHP
   rbind(
     ., 
     data.frame(
       PROVIDER_NAME = "Region 10", 
-      t(colSums(.[2:5]))
+      t(colSums(.[2:6]))
     )
   ) %>%
   mutate(
-    numerator = completed - overdue,
+    denominator      = eligible + completed_inel - deferred,
+    numerator        = completed_elig + completed_inel - overdue,
     percent_complete = round(numerator / denominator * 100, digits = 1)
   ) %>%
   select(
     CMHSP = PROVIDER_NAME,
-    `Individuals eligible for SIS (Denominator)` = denominator,
+    `Individuals eligible or received SIS (Denominator)` = denominator,
     `Individuals with a current SIS (Numerator)` = numerator,
-    `Individuals with a completed SIS` = completed, 
+    `Individuals eligible to receive SIS` = eligible,
+    `Eligible individuals with a completed SIS` = completed_elig, 
+    `Ineligible individuals with a completed SIS` = completed_inel,
     `Individuals with an expired SIS` = overdue,
     `Individuals who refused to take SIS` = deferred,
     `Individuals with a current SIS / Individuals eligible for SIS` = percent_complete 
