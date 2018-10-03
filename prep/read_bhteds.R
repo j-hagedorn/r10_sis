@@ -12,7 +12,7 @@ combine_bhteds <- function(directory) {
   df <- tibble() 
   # Loop through files, binding them together
   for (i in 1:n) {
-    x <- readxl::read_excel(files[i], skip = 9)
+    x <- read_csv(files[i],skip = 3)
     print(files[i])
     df <- rbind(df, x)
   } 
@@ -25,9 +25,11 @@ combine_bhteds <- function(directory) {
 # Bind separate CMH dataframes together
 open_date <- 
   combine_bhteds(directory = paste0(path,"/active_consumers")) %>%
-  group_by(`case_#`) %>%
+  group_by(case_number) %>%
+  # Include only most recent service start date
   filter(service_start_date == max(service_start_date, na.rm = T)) %>%
   ungroup() %>%
-  select(medicaid_id,agency_admission_date)
+  select(medicaid_id,agency_admission_date) %>%
+  mutate(agency_admission_date = mdy(agency_admission_date))
 
 # bhteds <- combine_bhteds(directory = paste0(path,"/active_consumers"))
