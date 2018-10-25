@@ -64,7 +64,21 @@ combined <-
   filter(sis_eligible == T | sis_complete_inel == T)  %>%
   left_join(open_date, by = c("MEDICAID_ID" = "medicaid_id")) %>%
   mutate(agency_admission_date = as.Date(agency_admission_date)) %>%
-  distinct() 
+  distinct() %>%
+  # Identify individuals due before end of current FY
+  mutate(
+    end_of_fy = ymd(
+      paste0(
+        # Identify FY of current date
+        as.POSIXlt(today())$year + (as.POSIXlt(today())$mo >= 4) + 1900,
+        # then add MM/DD
+        "-09-30"
+      )
+    ),
+    due_by_dt = agency_admission_date + years(3),
+    due_in_fy = due_by_dt <= end_of_fy
+  ) %>%
+  select(-end_of_fy,-due_by_dt)
   
 # Filter to only include those who need SIS
 need_sis <-
