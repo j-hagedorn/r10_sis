@@ -84,16 +84,28 @@ combined <-
 need_sis <-
   combined %>%
   filter(is.na(PROVIDER_NAME) == F) %>%
-  select(MEDICAID_ID,PROVIDER_NAME,agency_admission_date,most_recent_service,sis_completed_dt:sis_coming90,deferral) %>%
-  mutate(sis_complete_any = sis_complete_elig == T | sis_complete_inel == T) %>%
+  select(
+    MEDICAID_ID,PROVIDER_NAME,agency_admission_date,most_recent_service,
+    sis_completed_dt:sis_coming90,due_in_fy,deferral
+  ) %>%
+  mutate(
+    # Tag individuals showing NA admit date. They are found on through the 
+    # eligibility or completed SIS data, but are closed as of the date the 
+    # BH-TEDS report was pulled (therefore not listed on the BH-TEDS report 
+    # and lacking agency admit field)
+    closed_in_pce = is.na(agency_admission_date),
+    sis_complete_any = sis_complete_elig == T | sis_complete_inel == T
+  ) %>%
   gather(field,val,sis_eligible:sis_complete_any) %>%
   mutate(
     status = case_when(
-      field == "sis_complete_any" & val == F  ~ "Initial SIS Needed",
+      field == "sis_complete_any"  & val == F  ~ "Initial SIS Needed",
       field == "sis_complete_inel" & val == T  ~ "SIS completed but ineligible",
       field == "sis_overdue"       & val == T  ~ "Reassessment Overdue",
       field == "sis_coming90"      & val == T  ~ "Reassessment Due in 90 Days",
-      field == "deferral"          & val == T  ~ "Reassessment Due in 90 Days"
+      field == "due_in_fy"         & val == T  ~ "Due in current Fiscal Year",
+      field == "deferral"          & val == T  ~ "Reassessment Due in 90 Days",
+      field == "closed_in_pce"     & val == T  ~ "Closed in PCE MiX system"
     )
   ) %>%
   filter(is.na(status) == F) %>%
@@ -108,6 +120,7 @@ summary <-
   group_by(PROVIDER_NAME) %>%
   summarize(
     eligible       = sum(sis_eligible),
+    due_in_fy      = sum(due_in_fy, na.rm = T),
     deferred       = sum(deferral),
     completed_elig = sum(sis_complete_elig),
     completed_inel = sum(sis_complete_inel),
@@ -118,24 +131,29 @@ summary <-
     ., 
     data.frame(
       PROVIDER_NAME = "Region 10", 
-      t(colSums(.[2:6]))
+      t(colSums(.[2:7]))
     )
   ) %>%
   mutate(
     denominator      = eligible + completed_inel - deferred,
+    denominator_fy   = due_in_fy + completed_inel - deferred,
     numerator        = completed_elig + completed_inel - overdue,
-    percent_complete = round(numerator / denominator * 100, digits = 1)
+    percent_complete = round(numerator / denominator * 100, digits = 1),
+    percent_complete_fy = round(numerator / denominator_fy * 100, digits = 1)
   ) %>%
   select(
     CMHSP = PROVIDER_NAME,
     `Individuals eligible or received SIS (Denominator)` = denominator,
+    `Individuals eligible or received SIS (Denominator)` = denominator_fy,
     `Individuals with a current SIS (Numerator)` = numerator,
     `Individuals eligible to receive SIS` = eligible,
+    `Individuals with SIS due in current Fiscal Year` = due_in_fy,
     `Eligible individuals with a completed SIS` = completed_elig, 
     `Ineligible individuals with a completed SIS` = completed_inel,
     `Individuals with an expired SIS` = overdue,
     `Individuals who refused to take SIS` = deferred,
-    `Individuals with a current SIS / Individuals eligible for SIS` = percent_complete 
+    `Individuals with a current SIS / Individuals eligible for SIS` = percent_complete,
+    `Individuals with a current SIS / Individuals with SIS due in FY` = percent_complete_fy
   )
 
 # Create output
