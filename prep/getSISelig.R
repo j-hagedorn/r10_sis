@@ -86,13 +86,12 @@ need_sis <-
   filter(is.na(PROVIDER_NAME) == F) %>%
   select(
     MEDICAID_ID,PROVIDER_NAME,agency_admission_date,most_recent_service,
-    sis_completed_dt:sis_coming90,due_in_fy,deferral
+    sis_completed_dt:sis_coming90,due_in_fy,deferral_active
   ) %>%
   mutate(
-    # Tag individuals showing NA admit date. They are found on through the 
-    # eligibility or completed SIS data, but are closed as of the date the 
-    # BH-TEDS report was pulled (therefore not listed on the BH-TEDS report 
-    # and lacking agency admit field)
+    # Tag individuals showing NA admit date. They are found on through the eligibility or 
+    # completed SIS data, but are closed as of the date the BH-TEDS report was pulled
+    # (therefore not listed on the BH-TEDS report and lacking agency admit field)
     closed_in_pce = is.na(agency_admission_date),
     sis_complete_any = sis_complete_elig == T | sis_complete_inel == T
   ) %>%
@@ -104,12 +103,14 @@ need_sis <-
       field == "sis_overdue"       & val == T  ~ "Reassessment Overdue",
       field == "sis_coming90"      & val == T  ~ "Reassessment Due in 90 Days",
       field == "due_in_fy"         & val == T  ~ "Due in current Fiscal Year",
-      field == "deferral"          & val == T  ~ "Reassessment Due in 90 Days",
+      field == "deferral_active"   & val == T  ~ "Active Deferral",
+      field == "deferral_active"   & val == F  ~ "Expired Deferral",
       field == "closed_in_pce"     & val == T  ~ "Closed in PCE MiX system"
     )
   ) %>%
   filter(is.na(status) == F) %>%
   group_by(MEDICAID_ID) %>%
+  select(-field,-val) %>%
   arrange(desc(most_recent_service)) 
 
 # Summarize completion rate
@@ -119,11 +120,11 @@ summary <-
   filter(is.na(PROVIDER_NAME) == F)  %>%
   group_by(PROVIDER_NAME) %>%
   summarize(
-    eligible       = sum(sis_eligible),
+    eligible       = sum(sis_eligible, na.rm = T),
     due_in_fy      = sum(due_in_fy, na.rm = T),
-    deferred       = sum(deferral),
-    completed_elig = sum(sis_complete_elig),
-    completed_inel = sum(sis_complete_inel),
+    deferred       = sum(deferral_active, na.rm = T),
+    completed_elig = sum(sis_complete_elig, na.rm = T),
+    completed_inel = sum(sis_complete_inel, na.rm = T),
     overdue        = sum(sis_overdue, na.rm = T)
   ) %>%
   # Add subtotal line for PIHP
@@ -144,7 +145,7 @@ summary <-
   select(
     CMHSP = PROVIDER_NAME,
     `Individuals eligible or received SIS (Denominator)` = denominator,
-    `Individuals eligible or received SIS (Denominator)` = denominator_fy,
+    `Individuals eligible or received SIS in Current FY (Denominator)` = denominator_fy,
     `Individuals with a current SIS (Numerator)` = numerator,
     `Individuals eligible to receive SIS` = eligible,
     `Individuals with SIS due in current Fiscal Year` = due_in_fy,

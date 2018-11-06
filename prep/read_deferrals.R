@@ -5,29 +5,34 @@ library(tidyverse);library(readxl)
 sis_defer_1_1 <- 
   read_excel(paste0(path,"Deferral Tracking Spreadsheet 6-1-14 to 9-30-17.xlsx"),sheet = 1) %>%
   rename(MEDICAID_ID = `Medicaid ID`) %>%
-  select(MEDICAID_ID)
+  select(MEDICAID_ID, defer_date = `Referral Date`) %>%
+  mutate(defer_date = as.Date(defer_date))
 
 sis_defer_1_2 <- 
   read_excel(paste0(path,"Deferral Tracking Spreadsheet 6-1-14 to 9-30-17.xlsx"),sheet = 2) %>%
   rename(MEDICAID_ID = `Medicaid ID`) %>%
-  select(MEDICAID_ID)
+  select(MEDICAID_ID, defer_date = `Referral Date`) %>%
+  mutate(defer_date = as.Date(defer_date))
 
 sis_defer_1_3 <- 
   read_excel(paste0(path,"Deferral Tracking Spreadsheet 6-1-14 to 9-30-17.xlsx"),sheet = 3) %>%
   rename(MEDICAID_ID = `Medicaid ID`) %>%
-  select(MEDICAID_ID)
+  select(MEDICAID_ID, defer_date = `Referral Date`) %>%
+  mutate(defer_date = as.Date(defer_date))
 
 sis_defer_1_4 <- 
   read_excel(paste0(path,"Deferral Tracking Spreadsheet 6-1-14 to 9-30-17.xlsx"),sheet = 4) %>%
   rename(MEDICAID_ID = `Medicaid ID`) %>%
-  select(MEDICAID_ID)
+  select(MEDICAID_ID, defer_date = `Referral Date`) %>%
+  mutate(defer_date = as.Date(as.numeric(defer_date), origin="1899-12-30"))
 
 sis_defer_2 <- 
-  read_excel(
-    paste0(path,"Deferral Tracking Spreadsheet 10-1-17 to Current.xlsx")
-  ) %>%
+  read_excel(paste0(path,"Deferral Tracking Spreadsheet 10-1-17 to Current.xlsx")) %>%
   rename(MEDICAID_ID = `Medicaid ID #`) %>%
-  select(MEDICAID_ID)
+  select(MEDICAID_ID, defer_date = `Referral Date`) %>%
+  mutate(
+    defer_date = as.Date(as.numeric(defer_date), origin="1899-12-30")
+  )
 
 sis_defer <- 
   sis_defer_1_1 %>% 
@@ -59,7 +64,13 @@ sis_defer <-
     MEDICAID_ID = as.factor(MEDICAID_ID)
   ) %>%
   mutate(
-    deferral = T
+    deferral = T,
+    deferral_active = case_when(
+      # If deferred > 365 days ago, 'Expired Deferral', otherwise 'Active Deferral'
+      deferral == T & defer_date + 365 < Sys.Date()  ~ F,
+      deferral == T & is.na(defer_date) == T         ~ F,
+      deferral == T & defer_date + 365 >= Sys.Date() ~ T
+    )
   )
 
 rm(sis_defer_1_1); rm(sis_defer_1_2);rm(sis_defer_1_3);rm(sis_defer_1_4);rm(sis_defer_2)
