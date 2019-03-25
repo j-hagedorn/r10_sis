@@ -136,9 +136,9 @@ summary <-
     )
   ) %>%
   mutate(
-    denominator      = eligible + completed_inel - deferred,
-    denominator_fy   = due_in_fy + completed_inel - deferred,
-    numerator        = completed_elig + completed_inel - overdue,
+    denominator      = eligible - deferred,
+    denominator_fy   = due_in_fy - deferred,
+    numerator        = completed_elig - overdue,
     percent_complete = round(numerator / denominator * 100, digits = 1),
     percent_complete_fy = round(numerator / denominator_fy * 100, digits = 1)
   ) %>%
