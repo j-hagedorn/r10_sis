@@ -108,6 +108,15 @@ need_sis <-
       field == "closed_in_pce"     & val == T  ~ "Closed in PCE MiX system"
     )
   ) %>%
+  mutate(
+    # Flag SIS due date
+    sis_due_dt = case_when(
+      # Add initial go-live
+      is.na(sis_completed_dt) & agency_admission_date < ymd("2014-07-01") ~ ymd("2017-09-30"),
+      is.na(sis_completed_dt) == T ~ ymd(agency_admission_date) + years(3),
+      is.na(sis_completed_dt) == F ~ ymd(sis_completed_dt) + years(3)
+    )
+  ) %>%
   filter(is.na(status) == F) %>%
   group_by(MEDICAID_ID) %>%
   select(-field,-val) %>%
