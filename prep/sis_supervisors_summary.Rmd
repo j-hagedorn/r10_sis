@@ -1,5 +1,6 @@
 ---
-title: "SIS Completion Summary"
+title: 'SIS Completion: Supervisors Summary'
+author: "Region 10"
 output: pdf_document
 classoption: landscape
 params:

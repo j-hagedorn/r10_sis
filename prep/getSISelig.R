@@ -169,7 +169,15 @@ summary <-
 # Create output
 write_csv(summary, path = paste0("output/percent_complete_summary_",Sys.Date(),".csv"))
 
-# Render summary report for high-level review
+# Render summary reports for high-level review
+
+rmarkdown::render(
+  input = "prep/sis_supervisors_summary.Rmd",
+  output_file = paste0("sis_supervisors_summary",Sys.Date(),".pdf"),
+  output_dir = "output",
+  params = list(summary_tbl = summary, report_date = Sys.Date())
+)
+
 rmarkdown::render(
   input = "prep/sis_directors_summary.Rmd",
   output_file = paste0("sis_directors_summary",Sys.Date(),".pdf"),
@@ -177,13 +185,7 @@ rmarkdown::render(
   params = list(summary_tbl = summary, report_date = Sys.Date())
 )
 
-# Render summary report for high-level review
-rmarkdown::render(
-  input = "prep/sis_complete_summary.Rmd",
-  output_file = paste0("sis_complete_summary",Sys.Date(),".pdf"),
-  output_dir = "output",
-  params = list(summary_tbl = summary, report_date = Sys.Date())
-)
+# Output Detail-Level Report
 
 write_csv(need_sis, path = paste0("output/need_sis_r10_",Sys.Date(),".csv"))
 
