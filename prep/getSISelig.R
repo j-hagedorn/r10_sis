@@ -167,6 +167,15 @@ summary <-
     `Individuals with a current SIS / Individuals with SIS due in FY` = percent_complete_fy
   )
 
+monthly_complete <-
+  combined %>%
+  filter(is.na(PROVIDER_NAME) == F) %>%
+  filter(sis_complete_elig == T) %>%
+  mutate(month_complete = floor_date(sis_completed_dt, unit = "month")) %>%
+  group_by(PROVIDER_NAME, month_complete) %>%
+  summarize(n = n()) %>%
+  ungroup()
+
 # Create output
 write_csv(summary, path = paste0("output/percent_complete_summary_",Sys.Date(),".csv"))
 
@@ -176,7 +185,12 @@ rmarkdown::render(
   input = "prep/sis_supervisors_summary.Rmd",
   output_file = paste0("sis_supervisors_summary",Sys.Date(),".pdf"),
   output_dir = "output",
-  params = list(summary_tbl = summary, report_date = Sys.Date())
+  params = list(
+    summary_tbl = summary, 
+    monthly_tbl = monthly_complete, 
+    needed_tbl = need_sis,
+    report_date = Sys.Date()
+  )
 )
 
 rmarkdown::render(
