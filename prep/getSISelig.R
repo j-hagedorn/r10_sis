@@ -126,7 +126,8 @@ need_sis <-
 
 summary <-
   combined %>%
-  filter(is.na(PROVIDER_NAME) == F)  %>%
+  filter(is.na(PROVIDER_NAME) == F) %>%
+  filter(sis_eligible == T) %>%
   group_by(PROVIDER_NAME) %>%
   summarize(
     eligible       = sum(sis_eligible, na.rm = T),
@@ -153,8 +154,8 @@ summary <-
   ) %>%
   select(
     CMHSP = PROVIDER_NAME,
-    `Individuals eligible or received SIS (Denominator)` = denominator,
-    `Individuals eligible or received SIS in Current FY (Denominator)` = denominator_fy,
+    `Individuals eligible without refusal (Denominator)` = denominator,
+    `Individuals eligible without refusal in Current FY (Denominator)` = denominator_fy,
     `Individuals with a current SIS (Numerator)` = numerator,
     `Individuals eligible to receive SIS` = eligible,
     `Individuals with SIS due in current Fiscal Year` = due_in_fy,
