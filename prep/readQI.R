@@ -4,7 +4,7 @@ library(tidyverse); library(lubridate); library(stringr)
 #### Read in QI data ####
 
 # Remove cols where all values are NA
-qi <- Filter(function(x)!all(is.na(x)), qi)
+# qi <- Filter(function(x)!all(is.na(x)), qi)
 
 # Clean colnames (rm spaces, other symbols, add underscore sep)
 names(qi) <- gsub(":|[[:punct:]]", "", names(qi))
@@ -54,7 +54,7 @@ qi %<>%
 #### Read in SIS data ####
 
 ## Define local source of SIS data
-sis_src <- "C:/Users/JoshH.TBDSAD/OneDrive - TBD Solutions LLC/files/Region10/SIS/SIS Online Output 09-17-18.xlsx"
+sis_src <- "C:/Users/JoshH.TBDSAD/OneDrive - TBD Solutions LLC/files/Region10/SIS/SIS Online Output 04-01-19.xlsx"
 
 library(readxl)
 sis_full <- read_excel(sis_src,na = c(""," ","NA","Choose one","Enterprise Wide"))

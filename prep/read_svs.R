@@ -11,7 +11,7 @@ combineServices <- function(directory) {
   df <- tibble() 
   # Loop through files, binding them together
   for (i in 1:n) {
-    x <- read_csv(files[i], skip = 7)
+    x <- read_csv(files[i], skip = 7, col_types = cols(.default = "c"))
     print(files[i])
     df <- rbind(df, x)
   } 
@@ -71,18 +71,14 @@ svs %>%
     FROM_DATE = str_trim(FROM_DATE),
     FROM_DATE = case_when(
       # If it is formatted as a date (with /)
-      grepl("/",FROM_DATE) == T        ~ mdy(FROM_DATE),
-      # If it can be converted to numeric (from string).
-      # Note: uses the Unix epoch of "1970-01-01"
-      is.na(as.numeric(FROM_DATE)) == F ~ as.Date(as.numeric(FROM_DATE), origin = "1970-01-01")
+      grepl("/",FROM_DATE) == T ~ mdy(FROM_DATE),
+      grepl("-",FROM_DATE) == T ~ ymd(FROM_DATE)
     ),
     THRU_DATE = str_trim(THRU_DATE),
     THRU_DATE = case_when(
       # If it is formatted as a date (with /)
-      grepl("/",THRU_DATE) == T        ~ mdy(THRU_DATE),
-      # If it can be converted to numeric (from string).
-      # Note: uses the Unix epoch of "1970-01-01"
-      is.na(as.numeric(THRU_DATE)) == F ~ as.Date(as.numeric(THRU_DATE), origin = "1970-01-01")
+      grepl("/",THRU_DATE) == T   ~ mdy(THRU_DATE),
+      grepl("-",THRU_DATE) == T ~ ymd(THRU_DATE)
     )
   ) %>%
   # Transform Y/N responses into logical vars
