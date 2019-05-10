@@ -54,7 +54,7 @@ qi %<>%
 #### Read in SIS data ####
 
 ## Define local source of SIS data
-sis_src <- "C:/Users/JoshH.TBDSAD/OneDrive - TBD Solutions LLC/files/Region10/SIS/SIS Online Output 04-01-19.xlsx"
+sis_src <- "C:/Users/JoshH.TBDSAD/OneDrive - TBD Solutions LLC/files/Region10/SIS/SIS Online Output 05-01-19.xlsx"
 
 library(readxl)
 sis_full <- read_excel(sis_src,na = c(""," ","NA","Choose one","Enterprise Wide"))

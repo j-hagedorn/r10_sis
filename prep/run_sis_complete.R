@@ -5,7 +5,7 @@ source("prep/read_svs.R")
 
 # Read QI data
 path <- "C:/Users/JoshH.TBDSAD/OneDrive - TBD Solutions LLC/files/Region10/SIS/"
-qi <- read_csv(paste0(path,"FY19 QI - 2019.03.31.csv"))
+qi <- read_csv(paste0(path,"FY19 QI - 2019.04.26.csv"))
 source("prep/readQI.R")
 
 # Read BH-TEDS data
