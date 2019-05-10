@@ -65,31 +65,45 @@ by_priority <-
   ) %>%
   group_by(MEDICAID_ID) %>%
   filter(n_priority == min(n_priority)) %>%
-  group_by(priority) %>%
-  summarize(n = n())
+  group_by(PROVIDER_NAME, priority) %>%
+  summarize(n = n()) 
 ```
 
 Individuals who need (or will need) a SIS assessment can be prioritized based on whether they have already had an assessment, or how soon they will need a re-assessment.  The chart below shows a count of individuals based on these considerations:
 
 ```{r, fig.height=1.6, fig.width = 8}
+# by_priority %>%
+#   ggplot(aes(x = fct_rev(priority), y = n)) + 
+#   geom_bar(stat = "identity", width = 0.75) + 
+#   geom_text(aes(label = n),hjust = -0.2) +
+#   coord_flip() +
+#   scale_y_continuous(
+#     expand = c(0, 0),
+#     limits = c(0, max(by_priority$n) * 1.2)
+#   ) +
+#   theme_light() +
+#   theme(
+#     panel.grid = element_blank(),
+#     panel.border = element_blank(),
+#     axis.title = element_blank(),
+#     axis.ticks = element_blank(),
+#     axis.text.x = element_blank(),
+#     axis.text.y = element_text(color = "gray10")
+#   )
+
 by_priority %>%
-  ggplot(aes(x = fct_rev(priority), y = n)) + 
-  geom_bar(stat = "identity", width = 0.75) + 
-  geom_text(aes(label = n),hjust = -0.2) +
-  coord_flip() +
-  scale_y_continuous(
-    expand = c(0, 0),
-    limits = c(0, max(by_priority$n) * 1.2)
-  ) +
-  theme_light() +
-  theme(
-    panel.grid = element_blank(),
-    panel.border = element_blank(),
-    axis.title = element_blank(),
-    axis.ticks = element_blank(),
-    axis.text.x = element_blank(),
-    axis.text.y = element_text(color = "gray10")
+  group_by(priority) %>%
+  spread(PROVIDER_NAME,n,fill = 0) %>%
+  ungroup() %>%
+  mutate(region10 = rowSums(select_if(., is.numeric))) %>%
+  knitr::kable(
+    caption = "Number of assessments needed, by status and CMH",
+    col.names = c(
+      "Status","Lapeer","St. Clair","Sanilac","Genesee","Region 10"
+    ),
+    format.args = list(big.mark = ',')
   )
+
 ```
 
 
