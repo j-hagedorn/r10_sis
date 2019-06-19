@@ -55,10 +55,7 @@ combined <-
     sis_complete_elig = is.na(sis_completed_dt) == F & sis_eligible == T,
     # SIS assessments completed for ineligible individuals
     sis_complete_inel = is.na(sis_completed_dt) == F & sis_eligible == F,
-    sis_overdue  = (sis_completed_dt + (365 * 3)) < today(),
-    sis_coming90 = 
-      (sis_completed_dt + (365 * 3)) < (today() + 90)
-      & (sis_completed_dt + (365 * 3)) >= today() 
+    sis_complete_any = sis_complete_elig == T | sis_complete_inel == T 
   ) %>%
   # Include individuals who are eligible OR who have received a SIS
   filter(sis_eligible == T | sis_complete_inel == T)  %>%
@@ -70,39 +67,58 @@ combined <-
     end_of_fy = ymd(
       paste0(
         # Identify FY of current date
-        as.POSIXlt(today())$year + (as.POSIXlt(today())$mo >= 4) + 1900,
+        as.POSIXlt(today())$year + (as.POSIXlt(today())$mo >= 10) + 1900,
         # then add MM/DD
         "-09-30"
       )
     ),
-    due_by_dt = agency_admission_date + years(3),
-    due_in_fy = due_by_dt <= end_of_fy
+    due_by_dt = case_when(
+      is.na(sis_completed_dt) & deferral_active == F ~ as.Date(defer_date + years(1)),
+      is.na(sis_completed_dt)                        ~ as.Date(agency_admission_date + months(9)),
+      is.na(agency_admission_date)                   ~ as.Date(sis_completed_dt + years(3)),
+      sis_completed_dt >= agency_admission_date      ~ as.Date(sis_completed_dt + years(3)),
+      sis_completed_dt < agency_admission_date       ~ as.Date(sis_completed_dt + years(3))
+    ),
+    due_by_dt    = if_else(due_by_dt < ymd("2017-09-30"),ymd("2017-09-30"),due_by_dt),
+    sis_overdue  = due_by_dt < today() & !is.na(sis_completed_dt),
+    sis_coming90 = due_by_dt < (today() + 90) & due_by_dt >= today(),
+    due_in_fy    = due_by_dt <= end_of_fy
   ) %>%
-  select(-end_of_fy,-due_by_dt)
+  # select(-end_of_fy,-due_by_dt) %>%
+  select(
+    MEDICAID_ID,PROVIDER_NAME,
+    ends_with("_dt"),ends_with("_date"),ends_with("_service"),
+    starts_with("eligible"),
+    everything()
+  )
   
 # Filter to only include those who need SIS
 need_sis <-
   combined %>%
   filter(is.na(PROVIDER_NAME) == F) %>%
   select(
-    MEDICAID_ID,PROVIDER_NAME,agency_admission_date,most_recent_service,
-    sis_completed_dt:sis_coming90,due_in_fy,deferral_active
+    MEDICAID_ID,PROVIDER_NAME,agency_admission_date,most_recent_service,due_by_dt,
+    sis_completed_dt,sis_complete_any,sis_complete_inel,sis_overdue,
+    sis_coming90,due_in_fy,deferral_active
   ) %>%
   mutate(
     # Tag individuals showing NA admit date. They are found on through the eligibility or 
     # completed SIS data, but are closed as of the date the BH-TEDS report was pulled
     # (therefore not listed on the BH-TEDS report and lacking agency admit field)
-    closed_in_pce = is.na(agency_admission_date),
-    sis_complete_any = sis_complete_elig == T | sis_complete_inel == T
+    closed_in_pce = is.na(agency_admission_date)
   ) %>%
-  gather(field,val,sis_eligible:sis_complete_any) %>%
+  select(
+    MEDICAID_ID,PROVIDER_NAME,agency_admission_date,most_recent_service,due_by_dt,
+    starts_with("sis_"),due_in_fy,deferral_active
+  ) %>%
+  gather(field,val,sis_complete_any:deferral_active) %>%
   mutate(
     status = case_when(
       field == "sis_complete_any"  & val == F  ~ "Initial SIS Needed",
       field == "sis_complete_inel" & val == T  ~ "SIS completed but ineligible",
       field == "sis_overdue"       & val == T  ~ "Reassessment Overdue",
       field == "sis_coming90"      & val == T  ~ "Reassessment Due in 90 Days",
-      field == "due_in_fy"         & val == T  ~ "Due in current Fiscal Year",
+      field == "due_in_fy"         & val == T  ~ "Other upcoming in current FY",
       field == "deferral_active"   & val == T  ~ "Active Deferral",
       field == "deferral_active"   & val == F  ~ "Expired Deferral",
       field == "closed_in_pce"     & val == T  ~ "Closed in PCE MiX system"
@@ -111,13 +127,30 @@ need_sis <-
   filter(is.na(status) == F) %>%
   group_by(MEDICAID_ID) %>%
   select(-field,-val) %>%
-  arrange(desc(most_recent_service)) 
+  arrange(desc(most_recent_service)) %>%
+  ungroup() %>%
+  filter(!status %in% c("Active Deferral","SIS completed but ineligible","Closed in PCE MiX system")) %>%
+  mutate(
+    priority = fct_relevel(
+      status,
+      levels = c(
+        "Initial SIS Needed","Reassessment Overdue",
+        "Reassessment Due in 90 Days",
+        "Other upcoming in current FY","Expired Deferral"
+      )
+    ),
+    n_priority = as.numeric(priority)
+  ) %>%
+  group_by(MEDICAID_ID) %>%
+  # Pick only the highest 'priority' issue
+  filter(n_priority == min(n_priority))
 
 # Summarize completion rate
 
 summary <-
   combined %>%
-  filter(is.na(PROVIDER_NAME) == F)  %>%
+  filter(is.na(PROVIDER_NAME) == F) %>%
+  filter(sis_eligible == T) %>%
   group_by(PROVIDER_NAME) %>%
   summarize(
     eligible       = sum(sis_eligible, na.rm = T),
@@ -136,16 +169,16 @@ summary <-
     )
   ) %>%
   mutate(
-    denominator      = eligible + completed_inel - deferred,
-    denominator_fy   = due_in_fy + completed_inel - deferred,
-    numerator        = completed_elig + completed_inel - overdue,
+    denominator      = eligible - deferred,
+    denominator_fy   = due_in_fy - deferred,
+    numerator        = completed_elig - overdue,
     percent_complete = round(numerator / denominator * 100, digits = 1),
     percent_complete_fy = round(numerator / denominator_fy * 100, digits = 1)
   ) %>%
   select(
     CMHSP = PROVIDER_NAME,
-    `Individuals eligible or received SIS (Denominator)` = denominator,
-    `Individuals eligible or received SIS in Current FY (Denominator)` = denominator_fy,
+    `Individuals eligible without refusal (Denominator)` = denominator,
+    `Individuals eligible without refusal in Current FY (Denominator)` = denominator_fy,
     `Individuals with a current SIS (Numerator)` = numerator,
     `Individuals eligible to receive SIS` = eligible,
     `Individuals with SIS due in current Fiscal Year` = due_in_fy,
@@ -157,16 +190,40 @@ summary <-
     `Individuals with a current SIS / Individuals with SIS due in FY` = percent_complete_fy
   )
 
+monthly_complete <-
+  combined %>%
+  filter(is.na(PROVIDER_NAME) == F) %>%
+  filter(sis_complete_elig == T) %>%
+  mutate(month_complete = floor_date(sis_completed_dt, unit = "month")) %>%
+  group_by(PROVIDER_NAME, month_complete) %>%
+  summarize(n = n()) %>%
+  ungroup()
+
 # Create output
 write_csv(summary, path = paste0("output/percent_complete_summary_",Sys.Date(),".csv"))
 
-# Render summary report for high-level review
+# Render summary reports for high-level review
+
 rmarkdown::render(
-  input = "prep/sis_complete_summary.Rmd",
-  output_file = paste0("sis_complete_summary",Sys.Date(),".pdf"),
+  input = "prep/sis_supervisors_summary.Rmd",
+  output_file = paste0("sis_supervisors_summary",Sys.Date(),".pdf"),
+  output_dir = "output",
+  params = list(
+    summary_tbl = summary, 
+    monthly_tbl = monthly_complete, 
+    needed_tbl = need_sis,
+    report_date = Sys.Date()
+  )
+)
+
+rmarkdown::render(
+  input = "prep/sis_directors_summary.Rmd",
+  output_file = paste0("sis_directors_summary",Sys.Date(),".pdf"),
   output_dir = "output",
   params = list(summary_tbl = summary, report_date = Sys.Date())
 )
+
+# Output Detail-Level Report
 
 write_csv(need_sis, path = paste0("output/need_sis_r10_",Sys.Date(),".csv"))
 

@@ -1,0 +1,157 @@
+---
+title: 'SIS Completion: Supervisors Summary'
+author: "Region 10"
+output: pdf_document
+# classoption: landscape
+params:
+  summary_tbl: summary
+  monthly_tbl: monthly_complete
+  needed_tbl: need_sis
+  report_date: Sys.Date()
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
+library(tidyverse); library(lubridate)
+```
+
+## Completion Trends
+
+```{r month_df}
+
+month_df <-
+  params$monthly_tbl %>%
+  #monthly_tbl %>%
+  filter(month_complete >= floor_date(max(month_complete) - 365, unit = "month"))
+
+per_mo <- month_df %>% group_by(month_complete) %>% summarize(n = sum(n)) %>% ungroup
+
+needed <-
+params$summary_tbl %>%
+# summary %>% 
+  filter(CMHSP == 'Region 10') %>% 
+  select(n = `Individuals with SIS due in current Fiscal Year`) %>% 
+  .$n %>% c()
+
+```
+
+An average of `r round(needed / 12, digits = 1)` assessments would be needed per month to complete the `r needed` which are due during the current fiscal year.
+
+In comparison, `r per_mo %>% filter(month_complete == max(month_complete)) %>% .$n` assessments were completed last month across the region, compared to a monthly average of `r round(mean(per_mo$n), digits = 1)` during the past 12 months.  The plot below shows the breakdown by month and organization:
+
+```{r line_plot, fig.height=1.6, fig.width = 8}
+month_df %>%
+  ggplot(data = ., aes(x = month_complete, y = n, linetype = PROVIDER_NAME)) +
+  geom_line() +  
+  labs(x="", y="# completed",linetype = "Organization") +
+  theme(text=element_text(family="Cambria")) +
+  theme_minimal()
+```
+
+## Prioritizing Assessments for Completion
+
+```{r need_df}
+by_priority <-
+  need_sis %>%
+  group_by(PROVIDER_NAME, priority) %>%
+  summarize(n = n()) 
+```
+
+Individuals who need (or will need) a SIS assessment can be prioritized based on whether they have already had an assessment, or how soon they will need a re-assessment.  The chart below shows a count of individuals based on these considerations:
+
+```{r, fig.height=1.6, fig.width = 8}
+# by_priority %>%
+#   ggplot(aes(x = fct_rev(priority), y = n)) + 
+#   geom_bar(stat = "identity", width = 0.75) + 
+#   geom_text(aes(label = n),hjust = -0.2) +
+#   coord_flip() +
+#   scale_y_continuous(
+#     expand = c(0, 0),
+#     limits = c(0, max(by_priority$n) * 1.2)
+#   ) +
+#   theme_light() +
+#   theme(
+#     panel.grid = element_blank(),
+#     panel.border = element_blank(),
+#     axis.title = element_blank(),
+#     axis.ticks = element_blank(),
+#     axis.text.x = element_blank(),
+#     axis.text.y = element_text(color = "gray10")
+#   )
+
+by_priority %>%
+  group_by(priority) %>%
+  spread(PROVIDER_NAME,n,fill = 0) %>%
+  ungroup() %>%
+  mutate(region10 = rowSums(select_if(., is.numeric))) %>%
+  knitr::kable(
+    caption = "Number of assessments needed, by status and CMH",
+    col.names = c(
+      "Status","Lapeer","St. Clair","Sanilac","Genesee","Region 10"
+    ),
+    format.args = list(big.mark = ',')
+  )
+
+```
+
+
+## Completion by CMHSP
+
+The table below contains the same information as the *Director's Summary*, with additional fields (i.e. `Completed`,`Overdue`,`Deferred`).
+
+```{r tbl_output, fig.width=8}
+params$summary_tbl %>%
+  select(
+    CMHSP,
+    `Individuals eligible without refusal (Denominator)`,
+    `Individuals with a current SIS (Numerator)`,
+    `Individuals eligible to receive SIS`,
+    `Individuals with a current SIS / Individuals eligible for SIS`,
+    `Individuals with SIS due in current Fiscal Year`,
+    `Eligible individuals with a completed SIS`,
+    `Individuals with an expired SIS`,
+    `Individuals who refused to take SIS`
+  ) %>%
+  knitr::kable(
+    col.names = c(
+      "Organization","Denom.","Num.","Eligible","%","Due this FY",
+      "Completed","Overdue","Deferred"
+    ),
+    format.args = list(big.mark = ',')
+  )
+
+```
+
+\pagebreak
+
+## Definitions
+
+### Priority Groups
+
+The chart included in this section counts each person who needs a SIS assessment and is included in the detail file.  Each person is counted once, based on the highest priority group that they fall into.  These groups are defined below, with the highest priority first:
+
+- *Initial SIS Needed*: Individual has not yet received a SIS assessment.
+- *Reassessment Overdue*: Individual's most recent SIS assessment has expired.
+- *Reassessment Due in 90 Days*: Individual's most recent SIS assessment will expire within 90 days of the report.
+- *Due in current Fiscal Year*: Individual's most recent SIS assessment will expire within the current fiscal year.
+- *Expired Deferral*: Individual refused to take the SIS originally, but a year or more has elapsed since their original refusal.
+
+### Completion by CMHSP
+
+The following definitions relate to the columns of the table above:
+
+- **Organization:**  *Name of the organization.*  For CMHSPs, this is the name of the organization who most recently submitted claims for any service provided to an individual.
+- **Denominator:** *Individuals who were eligible for and did not refuse the SIS.*  The number of individuals who are eligible to receive a Supports Intensity Scale (SIS) assessment and who have not deferred participation in the assessment.  The denominator does *not* include completed assessments for individuals who were not flagged as eligible but who nevertheless received an assessment. 
+- **Numerator:** *Numerator: Individuals with a current SIS.*  The number of individuals who have received a SIS assessment within the past three years.  The numerator is determined by looking at the total number of *Compl. (E)* assessments and subtracting those which are *Overdue*.
+- **Eligible:**  *Individuals eligible to receive a SIS*  The total number of individuals who were eligible to receive a SIS assessment based on the following criteria: (a) 18 years or older, (b) have an intellectual or developmental disability, (c) have Medicaid/Healthy MI Medicaid, and (d) receiving case management, supports coordination, respite, home-based, or ACT services.
+- **%:** *Individuals with a current SIS / Individuals eligible for SIS.*  The percent completed is determined by taking the number of individuals who received or were eligible to receive a SIS assessment who did not refuse to receive the assessment (*Denominator*), and looking at the proportion of these individuals who have a current SIS (i.e. within the past 3 years) based on assessment data (*Numerator*).
+- **Due this FY:**  *Individuals with SIS due within current FY.*  This is the number of individuals with a SIS assessment due during the current fiscal year (i.e. before 9/30 of the fiscal year on which the report was run).
+- **Completed:**  *Eligible individuals with a completed SIS.*  The total distinct number of *Eligible* individuals who have had a SIS assessment completed at any time, based on the SIS Online extract.
+- **Overdue:**  *Individuals with an expired SIS.*  The number of individuals with a *Completed* SIS (whether eligible or ineligible) whose assessment occurred more than three years prior to the date of this report.
+- **Deferred:** *Individuals who refused to take SIS.*  The number of individuals who opted not to participate in a SIS assessment.  Since deferrals are considered active for a year, after which time it is expected that follow-up will occur, this count only includes 'active' deferrals which were made within one year prior to the report date.
+   
+## Data
+
+This report was generated on `r params$report_date`.
+
+
