@@ -74,15 +74,15 @@ combined <-
     ),
     due_by_dt = case_when(
       is.na(sis_completed_dt) & deferral_active == F ~ as.Date(defer_date + years(1)),
-      is.na(sis_completed_dt)      ~ as.Date(agency_admission_date + months(9)),
-      is.na(agency_admission_date) ~ as.Date(sis_completed_dt + years(3)),
-      sis_completed_dt >= agency_admission_date ~ as.Date(sis_completed_dt + years(3)),
-      sis_completed_dt < agency_admission_date ~ as.Date(sis_completed_dt + years(3))
+      is.na(sis_completed_dt)                        ~ as.Date(agency_admission_date + months(9)),
+      is.na(agency_admission_date)                   ~ as.Date(sis_completed_dt + years(3)),
+      sis_completed_dt >= agency_admission_date      ~ as.Date(sis_completed_dt + years(3)),
+      sis_completed_dt < agency_admission_date       ~ as.Date(sis_completed_dt + years(3))
     ),
-    due_by_dt = if_else(due_by_dt < ymd("2017-09-30"),ymd("2017-09-30"),due_by_dt),
+    due_by_dt    = if_else(due_by_dt < ymd("2017-09-30"),ymd("2017-09-30"),due_by_dt),
     sis_overdue  = due_by_dt < today() & !is.na(sis_completed_dt),
     sis_coming90 = due_by_dt < (today() + 90) & due_by_dt >= today(),
-    due_in_fy = due_by_dt <= end_of_fy
+    due_in_fy    = due_by_dt <= end_of_fy
   ) %>%
   # select(-end_of_fy,-due_by_dt) %>%
   select(
@@ -118,7 +118,7 @@ need_sis <-
       field == "sis_complete_inel" & val == T  ~ "SIS completed but ineligible",
       field == "sis_overdue"       & val == T  ~ "Reassessment Overdue",
       field == "sis_coming90"      & val == T  ~ "Reassessment Due in 90 Days",
-      field == "due_in_fy"         & val == T  ~ "Due in current Fiscal Year",
+      field == "due_in_fy"         & val == T  ~ "Other upcoming in current FY",
       field == "deferral_active"   & val == T  ~ "Active Deferral",
       field == "deferral_active"   & val == F  ~ "Expired Deferral",
       field == "closed_in_pce"     & val == T  ~ "Closed in PCE MiX system"
@@ -127,7 +127,23 @@ need_sis <-
   filter(is.na(status) == F) %>%
   group_by(MEDICAID_ID) %>%
   select(-field,-val) %>%
-  arrange(desc(most_recent_service)) 
+  arrange(desc(most_recent_service)) %>%
+  ungroup() %>%
+  filter(!status %in% c("Active Deferral","SIS completed but ineligible","Closed in PCE MiX system")) %>%
+  mutate(
+    priority = fct_relevel(
+      status,
+      levels = c(
+        "Initial SIS Needed","Reassessment Overdue",
+        "Reassessment Due in 90 Days",
+        "Other upcoming in current FY","Expired Deferral"
+      )
+    ),
+    n_priority = as.numeric(priority)
+  ) %>%
+  group_by(MEDICAID_ID) %>%
+  # Pick only the highest 'priority' issue
+  filter(n_priority == min(n_priority))
 
 # Summarize completion rate
 

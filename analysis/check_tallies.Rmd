@@ -1,0 +1,46 @@
+---
+title: "Checking tallies"
+output: html_notebook
+---
+
+## Questions regarding Due in Current FY
+
+*"The only number I struggle with is the 1,130 which are due during the current fiscal year from the top of the Supervisors Summary. This number is obviously different from the number of assessments due in the current fiscal year listed later in the report. Does 1,130 include multiple categories?"*
+
+Yes, the 'Due this FY' from the initial paragraph and the final table are equivalent, and can include multiple categories from the central table.  In order to make clear that they are not the same, I've changed the 'Due in current fiscal year' item from the central table to 'Other upcoming in current FY'.  Hopefully that differentiates them.
+
+That said, the numbers from the central table will not necessarily match up with the one number summary for a couple of reasons:
+
+1.  *Timeframes don't necessarily overlap.*  While this isn't the cause of any current discrepancies, the timeframes 'within 90 days' and 'in current FY' won't always overlap.  For instance, on September 1st, a person may have an assessment due within 90 days but not the FY.
+
+```{r}
+not_in_detail <- 
+  combined %>%
+  anti_join(need_sis, by = "MEDICAID_ID") %>%
+  filter_at(
+    vars(sis_overdue,sis_coming90,due_in_fy),
+    any_vars(. == T)
+  )
+```
+
+2.  *Missing Provider IDs are excluded from central table.* There are `r n_distinct(not_in_detail$MEDICAID_ID)` individuals who are not in the need_sis detail report which feeds the central table, but who ARE included in the total number.  These are individuals who do not have a 'PROVIDER_NAME' (i.e. CMH) identified in their data. If you want, we can pull these folks out of the overall number as well, but presumably you would want to check in on that group and resolve data entry issues which are keeping them from being attributed to a CMH.  Note that there are no instances where `MEDICAID_ID`s from the detail output (n = `r length(unique(need_sis$MEDICAID_ID))`) are not also present in the larger dataset used to calculate percentages (n = `r intersect(need_sis$MEDICAID_ID,combined$MEDICAID_ID) %>% length(.)`).
+
+Individuals from the detail file are put in only one of the categories, based on the first one which they meet criteria for, applied in this order:
+
+- "Initial SIS Needed"
+- "Reassessment Overdue"
+- "Reassessment Due in 90 Days"
+- "Other upcoming in current FY"
+- "Expired Deferral"
+
+## Format of Detail Report
+
+"*However, I wonder how difficult it would be for Assessors and Supervisors to filter and review. Even if they filter the first category, they might not even look at the others! If we decide to keep the "most important" issue, we'd then have to decide on an order for the categories. I may need Jim or the Assessors to weigh in on this one. In your experience, what format is most beneficial?*"
+
+Because of the potential confusion inherent with these various categories, I've revised the output using the same logic shown above to apply only a single criterion to a person, based on the priority identified in our earlier call with Jim and Pattie.
+
+Just remember: any time we gain clarity we lose information!  In fact, I think that this 'one-row-per-person' approach was the initial approach over a year ago, which we expanded because folks indicated that people may want to see multiple issues.  In order to focus only on items related to prioritization of assessments, I've also excluded the following status flags from the file: "Active Deferral","SIS completed but ineligible","Closed in PCE MiX system"
+
+Since the purpose of the report is getting people to act, I do think that reducing confusion and unnecessary information is a best first step.  Once peope adopt this as a part of their process for scheduling and prioritizing upcoming assessments, perhaps we can add detail back in.
+
+

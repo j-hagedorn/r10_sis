@@ -53,18 +53,6 @@ month_df %>%
 ```{r need_df}
 by_priority <-
   need_sis %>%
-  ungroup() %>%
-  filter(!is.na(status)) %>%
-  filter(!status %in% c("Active Deferral","SIS completed but ineligible","Closed in PCE MiX system")) %>%
-  mutate(
-    priority = fct_relevel(
-      status,
-      levels = c("Initial SIS Needed","Reassessment Overdue","Reassessment Due in 90 Days","Due in current Fiscal Year","Expired Deferral")
-    ),
-    n_priority = as.numeric(priority)
-  ) %>%
-  group_by(MEDICAID_ID) %>%
-  filter(n_priority == min(n_priority)) %>%
   group_by(PROVIDER_NAME, priority) %>%
   summarize(n = n()) 
 ```
