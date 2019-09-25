@@ -19,7 +19,7 @@ combineServices <- function(directory) {
 }
 
 # Read in .csv files as dataframes
-directory <- "C:/Users/JoshH.TBDSAD/OneDrive - TBD Solutions LLC/files/Region10/SIS/services"
+directory <- "C:/Users/joshh/OneDrive - TBD Solutions LLC/files/Region10/SIS/services"
 # Bind separate CMH dataframes together
 svs <- combineServices(directory)
 
@@ -42,27 +42,13 @@ svs %>%
     MEDICAID_ID = str_replace_all(MEDICAID_ID, "[[:punct:]]", ""),
     # Convert blanks to NA
     MEDICAID_ID = ifelse(MEDICAID_ID == "", yes = NA, no = MEDICAID_ID), 
-    # If string > 10 chars, include only last 10 chars
-    MEDICAID_ID = ifelse(nchar(as.character(MEDICAID_ID)) > 10,
-                      yes = substr(MEDICAID_ID, 
-                                   start = nchar(as.character(MEDICAID_ID)) - 9, 
-                                   stop = nchar(as.character(MEDICAID_ID))),
-                      no = MEDICAID_ID),
-    # If string < 10 chars, pad with leading zeroes
-    MEDICAID_ID = ifelse(nchar(as.character(MEDICAID_ID)) < 10,
-                      yes = sprintf("%010d", as.integer(MEDICAID_ID)),
-                      no = MEDICAID_ID),
-    # Make 'NA' & 0000000000 to NA
-    MEDICAID_ID = ifelse(MEDICAID_ID %in% c("        NA","NA","0000000000"), 
-                      yes = NA,
-                      no = MEDICAID_ID),
-    # Convert to factor
-    MEDICAID_ID = as.factor(MEDICAID_ID)
+    MEDICAID_ID = str_sub(MEDICAID_ID,-10),
+    MEDICAID_ID = str_pad(MEDICAID_ID,width = 10,side = "left",pad = "0")
   ) %>%
   # Change numeric ID vars to characters
   mutate_at(
     .vars = vars(PRV_ID,CON_ID,CLM_ID:PRIM_INS_ID),
-    .funs = funs(as.character)
+    .funs = list(~as.character(.))
   ) %>%
   # Change all character columns to factors
   mutate_if(is.character,as.factor) %>%
@@ -84,7 +70,7 @@ svs %>%
   # Transform Y/N responses into logical vars
   mutate_at(
     .vars = vars(HAB_WAIVER:HMP_BUCKET),
-    .funs = funs(. == "Y")
+    .funs = list(. == "Y")
   ) %>%
   # Recode CMH names for consistent reference 
   mutate(
