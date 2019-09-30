@@ -7,8 +7,8 @@ library(tidyverse); library(lubridate); library(stringr)
 # qi <- Filter(function(x)!all(is.na(x)), qi)
 
 # Clean colnames (rm spaces, other symbols, add underscore sep)
-names(qi) <- gsub(":|[[:punct:]]", "", names(qi))
-names(qi) <- gsub(" |-", "_", names(qi))
+names(qi) <- gsub(":|[[:punct:]]", " ", names(qi))
+names(qi) <- gsub("  | |-", "_", names(qi))
 
 # Clean data to prepare for analysis
 qi %<>%
@@ -41,8 +41,8 @@ qi %<>%
   ) %>%
   # Change numeric ID vars to characters
   mutate_at(
-    .vars = vars(DISABILITYDD:MAJOR_MENTAL_ILLNESS,-DATE_OF_BIRTH),
-    .funs = funs(as.character)
+    .vars = vars(DISABILITY_DD:MAJOR_MENTAL_ILLNESS,-DATE_OF_BIRTH),
+    .funs = list(~as.character(.))
   ) %>%
   # Change all character columns to factors
   mutate_if(is.character,as.factor) %>%
@@ -54,7 +54,7 @@ qi %<>%
 #### Read in SIS data ####
 
 ## Define local source of SIS data
-sis_src <- "C:/Users/JoshH.TBDSAD/OneDrive - TBD Solutions LLC/files/Region10/SIS/SIS Online Output 05-01-19.xlsx"
+sis_src <- "C:/Users/joshh/OneDrive - TBD Solutions LLC/files/Region10/SIS/SIS Online Output 09-17-19.xlsx"
 
 library(readxl)
 sis_full <- read_excel(sis_src,na = c(""," ","NA","Choose one","Enterprise Wide"))
@@ -138,16 +138,18 @@ rm(sis_full)
 elig_qi <-
   qi %>%
   # Remove instances where IDD field is explicitly marked as 2 (no)
-  filter(DISABILITYDD != "2") %>%
+  filter(DISABILITY_DD != "2") %>%
   filter(
     # Include if IDD field is a 1 (yes) 
-    DISABILITYDD == "1" 
+    DISABILITY_DD == "1" 
     # or one of the 3 proxy measures noted is populated
     | is.na(MOBILITY) == F
     | is.na(PERSONAL) == F
     | is.na(SUPPORT_SYSTEM) == F
   ) %>%
   mutate(
+    MEDICAID_ID = str_sub(MEDICAID_ID,-10),
+    MEDICAID_ID = str_pad(MEDICAID_ID,width = 10,side = "left",pad = "0"),
     # Compute current age
     age = interval(DATE_OF_BIRTH, Sys.Date())/duration(num = 1, units = "years")
   ) %>%

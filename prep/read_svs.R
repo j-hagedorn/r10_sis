@@ -31,7 +31,7 @@ names(svs) <- gsub(":", "", names(svs))
 names(svs) <- gsub(" |-", "_", names(svs))
 
 # Clean data to prepare for analysis
-svs <-
+tst <-
 svs %>%
   # Clean Medicaid ID field
   mutate(
@@ -50,8 +50,8 @@ svs %>%
     .vars = vars(PRV_ID,CON_ID,CLM_ID:PRIM_INS_ID),
     .funs = list(~as.character(.))
   ) %>%
-  # Change all character columns to factors
-  mutate_if(is.character,as.factor) %>%
+  # # Change all character columns to factors
+  # mutate_if(is.character,as.factor) %>%
   # Clean date fields to prepare for analysis
   mutate(
     FROM_DATE = str_trim(FROM_DATE),
@@ -63,7 +63,7 @@ svs %>%
     THRU_DATE = str_trim(THRU_DATE),
     THRU_DATE = case_when(
       # If it is formatted as a date (with /)
-      grepl("/",THRU_DATE) == T   ~ mdy(THRU_DATE),
+      grepl("/",THRU_DATE) == T ~ mdy(THRU_DATE),
       grepl("-",THRU_DATE) == T ~ ymd(THRU_DATE)
     )
   ) %>%
