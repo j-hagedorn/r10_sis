@@ -3,6 +3,8 @@ library(tidyverse); library(lubridate); library(stringr)
 
 #### Read in QI data ####
 
+qi <- read_csv(qi_src)
+
 # Remove cols where all values are NA
 # qi <- Filter(function(x)!all(is.na(x)), qi)
 
@@ -52,9 +54,6 @@ qi %<>%
   ) 
 
 #### Read in SIS data ####
-
-## Define local source of SIS data
-sis_src <- "C:/Users/joshh/OneDrive - TBD Solutions LLC/files/Region10/SIS/SIS Online Output 09-17-19.xlsx"
 
 library(readxl)
 sis_full <- read_excel(sis_src,na = c(""," ","NA","Choose one","Enterprise Wide"))

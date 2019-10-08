@@ -5,7 +5,11 @@ library(tidyverse); library(stringr); library(magrittr); library(lubridate)
 # Define function to read and combine ####
 combineServices <- function(directory) {
   ## 'directory' is a char vector of len 1 indicating location of CSV files
-  files <- list.files(directory,full.names = TRUE) # make list of full file names
+  files <- c(
+    # make list of full file names
+    list.files(paste0(directory,"/complete_years"),full.names = TRUE),
+    list.files(directory,full.names = TRUE)
+  ) 
   n <- length(files)
   # Create empty data frame
   df <- tibble() 
@@ -19,9 +23,9 @@ combineServices <- function(directory) {
 }
 
 # Read in .csv files as dataframes
-directory <- "C:/Users/joshh/OneDrive - TBD Solutions LLC/files/Region10/SIS/services"
+
 # Bind separate CMH dataframes together
-svs <- combineServices(directory)
+svs <- combineServices(paste0(directory,"/services"))
 
 # Remove cols where all values are NA
 svs <- Filter(function(x)!all(is.na(x)), svs)
