@@ -3,35 +3,35 @@
 library(tidyverse);library(readxl)
 
 sis_defer_1_1 <- 
-  read_excel(paste0(path,"Deferral Tracking Spreadsheet 6-1-14 to 9-30-17.xlsx"),sheet = 1) %>%
+  read_excel(paste0(directory,"/deferrals/Deferral Tracking Spreadsheet 6-1-14 to 9-30-17.xlsx"),sheet = 1) %>%
   rename(MEDICAID_ID = `Medicaid ID`) %>%
   mutate(MEDICAID_ID = str_pad(MEDICAID_ID,width = 10,side = "left",pad = "0")) %>%
   select(MEDICAID_ID, defer_date = `Referral Date`) %>%
   mutate(defer_date = as.Date(defer_date))
 
 sis_defer_1_2 <- 
-  read_excel(paste0(path,"Deferral Tracking Spreadsheet 6-1-14 to 9-30-17.xlsx"),sheet = 2) %>%
+  read_excel(paste0(directory,"/deferrals/Deferral Tracking Spreadsheet 6-1-14 to 9-30-17.xlsx"),sheet = 2) %>%
   rename(MEDICAID_ID = `Medicaid ID`) %>%
   mutate(MEDICAID_ID = str_pad(MEDICAID_ID,width = 10,side = "left",pad = "0")) %>%
   select(MEDICAID_ID, defer_date = `Referral Date`) %>%
   mutate(defer_date = as.Date(defer_date))
 
 sis_defer_1_3 <- 
-  read_excel(paste0(path,"Deferral Tracking Spreadsheet 6-1-14 to 9-30-17.xlsx"),sheet = 3) %>%
+  read_excel(paste0(directory,"/deferrals/Deferral Tracking Spreadsheet 6-1-14 to 9-30-17.xlsx"),sheet = 3) %>%
   rename(MEDICAID_ID = `Medicaid ID`) %>%
   mutate(MEDICAID_ID = str_pad(MEDICAID_ID,width = 10,side = "left",pad = "0")) %>%
   select(MEDICAID_ID, defer_date = `Referral Date`) %>%
   mutate(defer_date = as.Date(defer_date))
 
 sis_defer_1_4 <- 
-  read_excel(paste0(path,"Deferral Tracking Spreadsheet 6-1-14 to 9-30-17.xlsx"),sheet = 4) %>%
+  read_excel(paste0(directory,"/deferrals/Deferral Tracking Spreadsheet 6-1-14 to 9-30-17.xlsx"),sheet = 4) %>%
   rename(MEDICAID_ID = `Medicaid ID`) %>%
   mutate(MEDICAID_ID = str_pad(MEDICAID_ID,width = 10,side = "left",pad = "0")) %>%
   select(MEDICAID_ID, defer_date = `Referral Date`) %>%
   mutate(defer_date = as.Date(as.numeric(defer_date), origin="1899-12-30"))
 
 sis_defer_2 <- 
-  read_excel(paste0(path,"Deferral Tracking Spreadsheet 10-1-17 to Current.xlsx")) %>%
+  read_excel(paste0(directory,"/deferrals/Deferral Tracking Spreadsheet 10-1-17 to Current.xlsx")) %>%
   rename(MEDICAID_ID = `Medicaid ID #`) %>%
   mutate(MEDICAID_ID = str_pad(MEDICAID_ID,width = 10,side = "left",pad = "0")) %>%
   select(MEDICAID_ID, defer_date = `Referral Date`) %>%

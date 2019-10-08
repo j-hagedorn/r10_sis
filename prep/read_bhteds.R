@@ -24,7 +24,7 @@ combine_bhteds <- function(directory) {
 
 # Bind separate CMH dataframes together
 open_date <- 
-  combine_bhteds(directory = paste0(path,"/active_consumers")) %>%
+  combine_bhteds(directory = paste0(directory,"/active_consumers")) %>%
   group_by(case_number) %>%
   # Include only most recent service start date
   filter(service_start_date == max(service_start_date, na.rm = T)) %>%
