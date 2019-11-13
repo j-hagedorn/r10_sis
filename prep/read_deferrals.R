@@ -76,6 +76,9 @@ sis_defer <-
       deferral == T & is.na(defer_date) == T         ~ F,
       deferral == T & defer_date + 365 >= Sys.Date() ~ T
     )
-  )
+  ) %>%
+  group_by(MEDICAID_ID) %>%
+  filter(defer_date == max(defer_date)) %>%
+  distinct()
 
 rm(sis_defer_1_1); rm(sis_defer_1_2);rm(sis_defer_1_3);rm(sis_defer_1_4);rm(sis_defer_2)

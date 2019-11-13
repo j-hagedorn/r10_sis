@@ -35,7 +35,7 @@ names(svs) <- gsub(":", "", names(svs))
 names(svs) <- gsub(" |-", "_", names(svs))
 
 # Clean data to prepare for analysis
-tst <-
+svs <-
 svs %>%
   # Clean Medicaid ID field
   mutate(
@@ -58,24 +58,11 @@ svs %>%
   # mutate_if(is.character,as.factor) %>%
   # Clean date fields to prepare for analysis
   mutate(
-    FROM_DATE = str_trim(FROM_DATE),
-    FROM_DATE = case_when(
-      # If it is formatted as a date (with /)
-      grepl("/",FROM_DATE) == T ~ mdy(FROM_DATE),
-      grepl("-",FROM_DATE) == T ~ ymd(FROM_DATE)
-    ),
-    THRU_DATE = str_trim(THRU_DATE),
-    THRU_DATE = case_when(
-      # If it is formatted as a date (with /)
-      grepl("/",THRU_DATE) == T ~ mdy(THRU_DATE),
-      grepl("-",THRU_DATE) == T ~ ymd(THRU_DATE)
-    )
+    FROM_DATE = parse_date_time(FROM_DATE,c("ymd", "mdy")),
+    THRU_DATE = parse_date_time(THRU_DATE,c("ymd", "mdy"))
   ) %>%
   # Transform Y/N responses into logical vars
-  mutate_at(
-    .vars = vars(HAB_WAIVER:HMP_BUCKET),
-    .funs = list(. == "Y")
-  ) %>%
+  mutate_at(vars(HAB_WAIVER:HMP_BUCKET),list(~. == "Y")) %>%
   # Recode CMH names for consistent reference 
   mutate(
     PROVIDER_NAME = recode(
@@ -87,14 +74,18 @@ svs %>%
     )
   )
   
+
+freshness_date <- max(svs$FROM_DATE,na.rm = T)
+
 # Identify individuals who are eligible based on service file criteria
 elig_svs <- 
   svs %>%
   # Include only eligible services
-  filter(CPT_CD %in% c(
-    "T1016","T1017","H0045","S5151","T1005",
-    "T2036","T2037","H0036","H0039"
-  )
+  filter(
+    CPT_CD %in% c(
+      "T1016","T1017","H0045","S5151","T1005",
+      "T2036","T2037","H0036","H0039"
+    )
   ) %>%
   filter(
     # Include individuals with Medicaid, including spenddown
@@ -108,4 +99,6 @@ elig_svs <-
     most_recent_service = max(FROM_DATE, na.rm = T)
   ) %>%
   mutate(eligible_svs = T) %>%
-  ungroup()
+  ungroup() %>%
+  # Remove individuals who have not had an eligible service within 90 days
+  filter(most_recent_service >= (freshness_date - days(90)))

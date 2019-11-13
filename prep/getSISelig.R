@@ -73,7 +73,7 @@ combined <-
       )
     ),
     due_by_dt = case_when(
-      is.na(sis_completed_dt) & deferral_active == F ~ as.Date(defer_date + years(1)),
+      deferral == T    ~ as.Date(defer_date + years(1)),
       is.na(sis_completed_dt)                        ~ as.Date(agency_admission_date + months(9)),
       is.na(agency_admission_date)                   ~ as.Date(sis_completed_dt + years(3)),
       sis_completed_dt >= agency_admission_date      ~ as.Date(sis_completed_dt + years(3)),
